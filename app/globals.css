@@ -1,0 +1,19 @@
+/*
+ * app/globals.css
+ *
+ * Global stylesheet loaded by the root layout.
+ * Tailwind's three directive layers are required — do not remove them.
+ *
+ * Add global base styles and CSS variables below the Tailwind directives.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Placeholder brand tokens — replace with Eskwelabs design tokens */
+  --color-brand-primary: #1a1a2e;
+  --color-brand-secondary: #16213e;
+  --color-brand-accent: #0f3460;
+}
