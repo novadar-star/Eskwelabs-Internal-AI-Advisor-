@@ -57,10 +57,10 @@ export default function MessageList({
           >
             {advisor.iconLabel}
           </div>
-          <p className="text-sm font-medium text-gray-700">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Chat with {advisor.name}
           </p>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
             Type a message below to get started.
           </p>
         </div>
@@ -99,8 +99,8 @@ function MessageBubble({ message }: MessageBubbleProps) {
       <div
         className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
           isUser
-            ? "bg-gray-200 text-gray-600"
-            : "bg-gray-100 text-gray-500 border border-gray-200"
+            ? "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+            : "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
         }`}
         aria-hidden="true"
       >
@@ -111,8 +111,8 @@ function MessageBubble({ message }: MessageBubbleProps) {
       <div
         className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           isUser
-            ? "rounded-br-sm bg-gray-800 text-white"
-            : "rounded-bl-sm border border-gray-200 bg-white text-gray-800"
+            ? "rounded-br-sm bg-gray-800 text-white dark:bg-gray-700"
+            : "rounded-bl-sm border border-gray-200 bg-white text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
         }`}
       >
         {/* TODO: When streaming, render tokens here as they arrive.
@@ -140,7 +140,7 @@ function ThinkingIndicator({ advisorName }: { advisorName: string }) {
     <div className="flex items-end gap-2">
       {/* Avatar */}
       <div
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500 border border-gray-200"
+        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
         aria-hidden="true"
       >
         AI
@@ -148,14 +148,14 @@ function ThinkingIndicator({ advisorName }: { advisorName: string }) {
 
       {/* Animated dots bubble */}
       <div
-        className="rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-4 py-3"
+        className="rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800"
         aria-label={`${advisorName} is thinking`}
         role="status"
       >
         <div className="flex items-center gap-1" aria-hidden="true">
-          <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms] dark:bg-gray-500" />
+          <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms] dark:bg-gray-500" />
+          <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms] dark:bg-gray-500" />
         </div>
       </div>
     </div>

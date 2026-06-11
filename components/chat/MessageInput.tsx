@@ -76,7 +76,7 @@ export default function MessageInput({
   const canSend = value.trim().length > 0 && !isSending;
 
   return (
-    <div className="flex-shrink-0 border-t border-gray-200 bg-white px-4 py-3">
+    <div className="flex-shrink-0 border-t border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
       <div className="flex items-end gap-3">
         {/* Textarea */}
         <textarea
@@ -88,7 +88,7 @@ export default function MessageInput({
           disabled={isSending}
           rows={1}
           aria-label="Message input"
-          className="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition focus:border-gray-400 focus:bg-white focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition focus:border-gray-400 focus:bg-white focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:border-gray-600 dark:focus:bg-gray-800"
           style={{ minHeight: "42px", maxHeight: "160px" }}
         />
 
@@ -97,7 +97,7 @@ export default function MessageInput({
           onClick={handleSend}
           disabled={!canSend}
           aria-label="Send message"
-          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-900 text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-900 text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-gray-700 dark:hover:bg-gray-600"
         >
           {isSending ? (
             // Spinner while waiting for response
@@ -138,7 +138,7 @@ export default function MessageInput({
       </div>
 
       {/* Hint text */}
-      <p className="mt-1.5 px-1 text-[10px] text-gray-400">
+      <p className="mt-1.5 px-1 text-[10px] text-gray-400 dark:text-gray-500">
         Enter to send · Shift+Enter for new line
       </p>
     </div>

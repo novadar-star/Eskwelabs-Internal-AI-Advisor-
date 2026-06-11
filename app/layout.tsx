@@ -6,13 +6,15 @@
  * Responsibilities:
  * - Sets the HTML `lang` attribute and base `<head>` metadata
  * - Imports global Tailwind CSS
- * - Will wrap children with a SessionProvider once auth is implemented
+ * - Wraps children with ThemeProvider (next-themes) for dark mode support
  *
  * This is a Server Component (no "use client" directive).
+ * ThemeProvider is a Client Component but can be used here as a child.
  */
 
 import type { Metadata } from "next";
 import "./globals.css";
+import ThemeProvider from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "Eskwelabs AI Advisor",
@@ -25,9 +27,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-white text-gray-900 antialiased">
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

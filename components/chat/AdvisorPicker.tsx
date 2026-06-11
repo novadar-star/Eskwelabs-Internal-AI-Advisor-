@@ -31,10 +31,10 @@ export default function AdvisorPicker({
     <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-8">
       {/* Heading */}
       <div className="mb-8 text-center">
-        <h2 className="text-2xl font-semibold text-gray-900">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
           Choose an Advisor
         </h2>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
           Select the advisor that best matches what you need help with today.
         </p>
       </div>
@@ -64,7 +64,7 @@ function AdvisorCard({ advisor, onClick }: AdvisorCardProps) {
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-start rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+      className="group flex flex-col items-start rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600 dark:focus-visible:ring-gray-600"
       aria-label={`Start chat with ${advisor.name}`}
     >
       {/* Icon / avatar */}
@@ -76,17 +76,17 @@ function AdvisorCard({ advisor, onClick }: AdvisorCardProps) {
       </div>
 
       {/* Advisor name */}
-      <h3 className="text-sm font-semibold text-gray-900 group-hover:text-gray-700">
+      <h3 className="text-sm font-semibold text-gray-900 group-hover:text-gray-700 dark:text-gray-100 dark:group-hover:text-gray-300">
         {advisor.name}
       </h3>
 
       {/* Description */}
-      <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
+      <p className="mt-1.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
         {advisor.description}
       </p>
 
       {/* CTA indicator */}
-      <div className="mt-4 flex items-center gap-1 text-xs font-medium text-gray-400 group-hover:text-gray-600 transition-colors">
+      <div className="mt-4 flex items-center gap-1 text-xs font-medium text-gray-400 group-hover:text-gray-600 transition-colors dark:text-gray-500 dark:group-hover:text-gray-300">
         <span>Start chat</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"

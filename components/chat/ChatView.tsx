@@ -46,12 +46,12 @@ export default function ChatView({
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* ── Chat header ──────────────────────────────────────────────── */}
-      <div className="flex flex-shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-5 py-3">
+      <div className="flex flex-shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-5 py-3 dark:border-gray-800 dark:bg-gray-900">
         {/* Back button */}
         <button
           onClick={onBack}
           aria-label="Back to advisor selection"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -77,11 +77,11 @@ export default function ChatView({
         </div>
 
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-gray-900">
+          <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
             {advisor.name}
           </p>
           {isSending && (
-            <p className="text-xs text-gray-400 animate-pulse">Thinking…</p>
+            <p className="text-xs text-gray-400 animate-pulse dark:text-gray-500">Thinking…</p>
           )}
         </div>
       </div>

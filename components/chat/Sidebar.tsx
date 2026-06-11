@@ -37,17 +37,17 @@ export default function Sidebar({
   advisors,
 }: SidebarProps) {
   return (
-    <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-gray-200 bg-white md:flex">
+    <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-gray-200 bg-white md:flex dark:border-gray-800 dark:bg-gray-900">
       {/* ── Header ────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
           Conversations
         </span>
         <button
           onClick={onNewChat}
           title="New chat"
           aria-label="Start a new chat"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
         >
           {/* Plus icon */}
           <svg
@@ -68,7 +68,7 @@ export default function Sidebar({
         aria-label="Past conversations"
       >
         {conversations.length === 0 ? (
-          <p className="px-4 py-6 text-center text-xs text-gray-400">
+          <p className="px-4 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
             No conversations yet.
             <br />
             Select an advisor to start.
@@ -85,8 +85,8 @@ export default function Sidebar({
                     onClick={() => onSelectConversation(conv)}
                     className={`w-full rounded-lg px-3 py-2.5 text-left transition-colors ${
                       isActive
-                        ? "bg-gray-100 text-gray-900"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
                     }`}
                     aria-current={isActive ? "true" : undefined}
                   >
@@ -97,18 +97,18 @@ export default function Sidebar({
 
                     {/* Advisor name + relative time */}
                     <div className="mt-0.5 flex items-center gap-1.5">
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
                         {advisor?.shortName ?? conv.advisorId}
                       </span>
-                      <span className="text-xs text-gray-300">·</span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-300 dark:text-gray-600">·</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
                         {formatRelativeDate(conv.updatedAt)}
                       </span>
                     </div>
 
                     {/* Last message preview */}
                     {conv.lastMessage && (
-                      <p className="mt-1 truncate text-xs text-gray-400">
+                      <p className="mt-1 truncate text-xs text-gray-400 dark:text-gray-500">
                         {conv.lastMessage}
                       </p>
                     )}

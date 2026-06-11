@@ -29,6 +29,7 @@ import Sidebar from "@/components/chat/Sidebar";
 import AdvisorPicker from "@/components/chat/AdvisorPicker";
 import ChatView from "@/components/chat/ChatView";
 import { googleSignOut } from "@/app/actions/auth";
+import DarkModeToggle from "@/components/DarkModeToggle";
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -288,26 +289,27 @@ export default function ChatShell({ userEmail, userRole }: ChatShellProps) {
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
+    <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-950">
       {/* Top nav */}
-      <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-gray-200 bg-white px-5">
-        <span className="text-sm font-semibold text-gray-800 tracking-tight">
+      <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-gray-900">
+        <span className="text-sm font-semibold text-gray-800 tracking-tight dark:text-gray-100">
           Eskwelabs AI Advisor
         </span>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           {userRole === "admin" && (
             <a
               href="/admin"
-              className="rounded-md px-2.5 py-1 text-xs font-medium text-violet-600 hover:bg-violet-50 transition-colors"
+              className="rounded-md px-2.5 py-1 text-xs font-medium text-violet-600 hover:bg-violet-50 transition-colors dark:text-violet-400 dark:hover:bg-violet-900/30"
             >
               Admin
             </a>
           )}
-          <span className="hidden text-xs text-gray-400 sm:block">{userEmail}</span>
+          <span className="hidden text-xs text-gray-400 sm:block mr-2">{userEmail}</span>
+          <DarkModeToggle />
           <form action={googleSignOut}>
             <button
               type="submit"
-              className="rounded-md px-2.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+              className="rounded-md px-2.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors dark:text-gray-400 dark:hover:bg-gray-800"
             >
               Sign out
             </button>
@@ -348,7 +350,7 @@ export default function ChatShell({ userEmail, userRole }: ChatShellProps) {
       </div>
 
       {/* Persistent footer */}
-      <footer className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-2 text-center text-xs text-gray-400">
+      <footer className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-2 text-center text-xs text-gray-400 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-500">
         Responses are AI-generated and may be inaccurate. All conversations are
         logged and may be reviewed by Eskwelabs administrators.
       </footer>
