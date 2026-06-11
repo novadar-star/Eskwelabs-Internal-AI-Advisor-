@@ -19,11 +19,6 @@ import ThemeProvider from "@/components/ThemeProvider";
 export const metadata: Metadata = {
   title: "Eskwelabs AI Advisor",
   description: "Internal AI advisor platform for Eskwelabs EIFs",
-  icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
-  },
 };
 
 export default function RootLayout({

@@ -89,11 +89,13 @@ export const config = {
      * Run middleware on all paths EXCEPT:
      * - _next/static   (static assets — no auth needed)
      * - _next/image    (image optimisation — no auth needed)
-     * - favicon.ico
+     * - favicon.ico    (browser auto-request)
+     * - icon.svg       (app favicon)
+     * - public files   (*.svg, *.png, *.ico, *.jpg, *.webp)
      * - api/auth/*     (NextAuth callback/session endpoints — must stay open)
      *
      * /login IS included in the matcher so we can redirect already-authed users.
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/auth).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|icon\\.svg|.*\\.(?:svg|png|ico|jpg|jpeg|webp)|api/auth).*)",
   ],
 };
