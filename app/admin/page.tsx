@@ -1,84 +1,120 @@
 /**
  * app/admin/page.tsx
  *
- * Admin dashboard — protected route (requires authentication + admin role).
+ * Admin dashboard — Server Component.
  *
- * Responsibilities:
- * - Usage and cost dashboard (per-user and aggregate stats)
- * - Model configuration per advisor (LLM provider + model identifier)
- * - Cache invalidation controls (DNA Digest, individual or all advisor prompts)
+ * ═══════════════════════════════════════════════════════════════
+ * HOW ROLE-BASED ACCESS CONTROL WORKS
+ * ═══════════════════════════════════════════════════════════════
+ * Access is enforced at THREE independent layers:
  *
- * Logic to implement:
- * - Server-side role check: redirect non-admins to /chat
- * - Fetch usage stats from Supabase `messages` and `usage_counters` tables
- * - Mutation: update `model_config` table for a given advisor
- * - Mutation: call cache invalidation API endpoint
+ * Layer 1 — Middleware (middleware.ts):
+ *   Runs on the Edge before any page code executes. Checks the role
+ *   from the JWT cookie. Non-admins are redirected to /chat immediately.
+ *   This prevents the page from even rendering for non-admins.
  *
- * This is a Server Component shell. Interactive controls will be Client Components.
+ * Layer 2 — Server Component check (this file):
+ *   Even if middleware is somehow bypassed, this server component calls
+ *   auth() and checks role === "admin" before rendering anything.
+ *   Non-admins are redirected to /chat.
+ *
+ * Layer 3 — API route checks (every /api/admin/* route):
+ *   Each API route independently verifies role === "admin" from the
+ *   session. This protects against direct API calls that bypass both
+ *   the middleware and the page entirely (e.g., curl, browser fetch).
+ *
+ * The role value is sourced from the Supabase users table during sign-in
+ * (lib/auth.ts signIn callback) and stored in the encrypted JWT cookie.
+ * It cannot be forged by the client.
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * DATA STRATEGY
+ * ═══════════════════════════════════════════════════════════════
+ * Usage data and model config are fetched server-side here and passed
+ * to client components as initial props. Client components then handle
+ * mutations (model config saves, cache refresh) via fetch() calls to
+ * the API routes, which re-validate the admin role on every request.
  */
 
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import AdminDashboard from "@/app/admin/AdminDashboard";
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
+export interface UsageRow {
+  userId: string;
+  email: string;
+  messagesToday: number;
+  tokensToday: number;
+  estSpendTodayUsd: number;
+}
+
+export interface ModelConfigRow {
+  advisorId: string;
+  provider: string;
+  model: string;
+  updatedBy: string | null;
+  updatedAt: string | null;
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
 
 export default async function AdminPage() {
+  // ── Layer 2 auth check ────────────────────────────────────────────────
   const session = await auth();
 
-  // Unauthenticated users go to login
-  if (!session) {
+  if (!session?.user) {
     redirect("/login");
   }
 
-  // TODO: Check session role from Supabase — redirect non-admins
-  // const role = session.user.role
-  // if (role !== "admin") redirect("/chat")
+  if (session.user.role !== "admin") {
+    // EIF users who somehow reach this route get bounced to /chat
+    redirect("/chat");
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  // ── Fetch usage data ──────────────────────────────────────────────────
+  const todayPH = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Manila",
+  });
+
+  const { data: usageData } = await supabase
+    .from("usage_counters")
+    .select("user_id, messages_today, tokens_today, est_spend_today_usd, users(email)")
+    .eq("day_ph", todayPH)
+    .order("est_spend_today_usd", { ascending: false });
+
+  const usageRows: UsageRow[] = (usageData ?? []).map((r) => ({
+    userId: r.user_id,
+    email: (r.users as unknown as { email: string } | null)?.email ?? "unknown",
+    messagesToday: r.messages_today,
+    tokensToday: r.tokens_today,
+    estSpendTodayUsd: Number(r.est_spend_today_usd ?? 0),
+  }));
+
+  // ── Fetch model config ────────────────────────────────────────────────
+  const { data: modelData } = await supabase
+    .from("model_config")
+    .select("advisor_id, provider, model, updated_by, updated_at")
+    .order("advisor_id");
+
+  const modelConfigs: ModelConfigRow[] = (modelData ?? []).map((r) => ({
+    advisorId: r.advisor_id,
+    provider: r.provider,
+    model: r.model,
+    updatedBy: r.updated_by,
+    updatedAt: r.updated_at,
+  }));
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Page header */}
-      <header className="border-b border-gray-200 bg-white px-6 py-4">
-        <h1 className="text-lg font-semibold text-gray-900">Admin Dashboard</h1>
-        <p className="text-sm text-gray-500">
-          Usage monitoring, model configuration, and cache management.
-        </p>
-      </header>
-
-      <main className="mx-auto max-w-6xl p-6 space-y-8">
-        {/* Usage & Cost section — to be implemented */}
-        <section>
-          <h2 className="mb-4 text-base font-semibold text-gray-700">
-            Usage &amp; Cost
-          </h2>
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-400">
-              Per-user and aggregate stats will appear here.
-            </p>
-          </div>
-        </section>
-
-        {/* Model Configuration section — to be implemented */}
-        <section>
-          <h2 className="mb-4 text-base font-semibold text-gray-700">
-            Model Configuration
-          </h2>
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-400">
-              LLM provider and model selector per advisor will appear here.
-            </p>
-          </div>
-        </section>
-
-        {/* Cache Management section — to be implemented */}
-        <section>
-          <h2 className="mb-4 text-base font-semibold text-gray-700">
-            Prompt Cache
-          </h2>
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-400">
-              Cache invalidation controls will appear here.
-            </p>
-          </div>
-        </section>
-      </main>
-    </div>
+    <AdminDashboard
+      adminEmail={session.user.email}
+      usageRows={usageRows}
+      usageDate={todayPH}
+      modelConfigs={modelConfigs}
+    />
   );
 }
