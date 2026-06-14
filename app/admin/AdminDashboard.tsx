@@ -3,42 +3,55 @@
 /**
  * app/admin/AdminDashboard.tsx
  *
- * Admin dashboard — redesigned.
- * - Accent-colored table headers
- * - Alternating row colors
- * - Monospace usage numbers
- * - Consistently styled dropdowns and buttons
- * - Full dark mode support
+ * Admin dashboard — matches the chat UI's "calm authority" design system.
+ *
+ * Surface tokens:
+ *   #0d0f1a  base background
+ *   #13151f  raised surface (cards, table rows alt)
+ *   #1e2130  borders, dividers
+ *   #1a1d2e  hover state
+ *
+ * Teal (#1B6B5A) is used only on:
+ *   - The primary "Save" button
+ *   - The "Refresh All Caches" button
+ *   - Section label left-border accent
+ * Nowhere else.
  */
 
 import { useState } from "react";
 import type { UsageRow, ModelConfigRow } from "@/app/admin/page";
 import DarkModeToggle from "@/components/DarkModeToggle";
 
-// ── Model options ──────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────
 
 const PROVIDERS = ["openai", "google", "anthropic"] as const;
 type Provider = (typeof PROVIDERS)[number];
 
 const MODELS_BY_PROVIDER: Record<Provider, string[]> = {
-  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
-  google: [
-    "google/gemini-2.5-flash-lite",
-    "google/gemini-2.5-flash",
-    "google/gemini-2.0-flash-001",
-  ],
-  anthropic: [
-    "anthropic/claude-3-5-sonnet",
-    "anthropic/claude-3-haiku",
-    "anthropic/claude-3-opus",
-  ],
+  openai:    ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+  google:    ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash", "google/gemini-2.0-flash-001"],
+  anthropic: ["anthropic/claude-3-5-sonnet", "anthropic/claude-3-haiku", "anthropic/claude-3-opus"],
 };
 
 const ADVISOR_LABELS: Record<string, string> = {
-  data_dashboard: "Data Dashboard Advisor",
-  ssot_memo: "SSOT Memo Advisor",
-  data_modeling: "Data Modeling Advisor",
+  data_dashboard: "Data Dashboard",
+  ssot_memo:      "SSOT Memo",
+  data_modeling:  "Data Modeling",
 };
+
+// ── Shared inline styles (avoids repeating magic strings) ─────────────────
+
+const S = {
+  base:    "#0d0f1a",
+  raised:  "#13151f",
+  border:  "#1e2130",
+  hover:   "#1a1d2e",
+  ink:     "#e2e4ef",
+  muted:   "#6b7280",
+  faint:   "#374151",
+  accent:  "#1B6B5A",
+  acHover: "#155748",
+} as const;
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -57,20 +70,17 @@ export default function AdminDashboard({
   usageDate,
   modelConfigs: initialConfigs,
 }: AdminDashboardProps) {
-  const [modelConfigs, setModelConfigs] = useState<ModelConfigRow[]>(initialConfigs);
+  const [modelConfigs, setModelConfigs]   = useState<ModelConfigRow[]>(initialConfigs);
   const [savingAdvisor, setSavingAdvisor] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<Record<string, { ok: boolean; msg: string }>>({});
-  const [cacheStatus, setCacheStatus] = useState<{
-    loading: boolean;
-    result: string | null;
-    ok: boolean | null;
-  }>({ loading: false, result: null, ok: null });
+  const [saveStatus, setSaveStatus]       = useState<Record<string, { ok: boolean; msg: string }>>({});
+  const [cacheStatus, setCacheStatus]     = useState<{ loading: boolean; result: string | null; ok: boolean | null }>
+                                              ({ loading: false, result: null, ok: null });
 
   // ── Totals ────────────────────────────────────────────────────────────
   const totals = {
-    messagesToday: usageRows.reduce((s, r) => s + r.messagesToday, 0),
-    tokensToday: usageRows.reduce((s, r) => s + r.tokensToday, 0),
-    estSpendTodayUsd: usageRows.reduce((s, r) => s + r.estSpendTodayUsd, 0),
+    messages: usageRows.reduce((s, r) => s + r.messagesToday,    0),
+    tokens:   usageRows.reduce((s, r) => s + r.tokensToday,      0),
+    spend:    usageRows.reduce((s, r) => s + r.estSpendTodayUsd, 0),
   };
 
   // ── Handlers ─────────────────────────────────────────────────────────
@@ -86,40 +96,35 @@ export default function AdminDashboard({
   }
 
   function handleModelChange(advisorId: string, model: string) {
-    setModelConfigs((prev) =>
-      prev.map((c) => (c.advisorId === advisorId ? { ...c, model } : c))
-    );
+    setModelConfigs((prev) => prev.map((c) => c.advisorId === advisorId ? { ...c, model } : c));
   }
 
   async function handleSaveModel(advisorId: string) {
     const config = modelConfigs.find((c) => c.advisorId === advisorId);
     if (!config) return;
-
     setSavingAdvisor(advisorId);
     setSaveStatus((prev) => ({ ...prev, [advisorId]: { ok: false, msg: "" } }));
 
     try {
-      const res = await fetch("/api/admin/model-config", {
+      const res  = await fetch("/api/admin/model-config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ advisorId, provider: config.provider, model: config.model }),
       });
-
       const data = await res.json() as { ok?: boolean; config?: ModelConfigRow; error?: string };
 
       if (!res.ok || !data.ok) {
         setSaveStatus((prev) => ({ ...prev, [advisorId]: { ok: false, msg: data.error ?? "Save failed." } }));
         return;
       }
-
       if (data.config) {
         setModelConfigs((prev) =>
           prev.map((c) =>
             c.advisorId === advisorId
               ? {
                   advisorId: (data.config as unknown as { advisor_id: string }).advisor_id ?? advisorId,
-                  provider: data.config!.provider,
-                  model: data.config!.model,
+                  provider:  data.config!.provider,
+                  model:     data.config!.model,
                   updatedBy: (data.config as unknown as { updated_by: string | null }).updated_by,
                   updatedAt: (data.config as unknown as { updated_at: string | null }).updated_at,
                 }
@@ -127,15 +132,8 @@ export default function AdminDashboard({
           )
         );
       }
-
       setSaveStatus((prev) => ({ ...prev, [advisorId]: { ok: true, msg: "Saved." } }));
-      setTimeout(() => {
-        setSaveStatus((prev) => {
-          const next = { ...prev };
-          delete next[advisorId];
-          return next;
-        });
-      }, 3000);
+      setTimeout(() => setSaveStatus((prev) => { const n = { ...prev }; delete n[advisorId]; return n; }), 3000);
     } catch (err) {
       setSaveStatus((prev) => ({ ...prev, [advisorId]: { ok: false, msg: "Network error." } }));
       console.error(err);
@@ -147,7 +145,7 @@ export default function AdminDashboard({
   async function handleCacheRefresh(scope: "all" | "dna") {
     setCacheStatus({ loading: true, result: null, ok: null });
     try {
-      const res = await fetch("/api/admin/refresh-cache", {
+      const res  = await fetch("/api/admin/refresh-cache", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope }),
@@ -159,205 +157,176 @@ export default function AdminDashboard({
       }
       setCacheStatus({ loading: false, result: data.message ?? "Cache cleared.", ok: true });
     } catch {
-      setCacheStatus({ loading: false, result: "Network error. Please try again.", ok: false });
+      setCacheStatus({ loading: false, result: "Network error.", ok: false });
     }
   }
-
-  // ── Shared styles ─────────────────────────────────────────────────────
-
-  const selectClass =
-    "rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-accent";
-
-  const primaryBtnClass =
-    "rounded-md px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
-
-  const secondaryBtnClass =
-    "rounded-md border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700";
 
   // ── Render ────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div style={{ minHeight: "100vh", backgroundColor: S.base, color: S.ink, fontSize: "14px" }}>
 
-      {/* ── Header ──────────────────────────────────────────────────── */}
-      <header className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div>
-            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Admin Dashboard
-            </h1>
-            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-              Usage monitoring, model configuration, and cache management.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400 dark:text-gray-500">{adminEmail}</span>
-            <DarkModeToggle />
-            <a
-              href="/chat"
-              className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-            >
-              ← Back to Chat
-            </a>
-          </div>
+      {/* ── Header — same height and structure as ChatShell ─────────── */}
+      <header
+        style={{ borderBottom: `1px solid ${S.border}`, height: "44px" }}
+        className="flex flex-shrink-0 items-center justify-between px-6"
+      >
+        <span style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "-0.01em" }}>
+          Eskwelabs AI Advisor
+        </span>
+
+        <div className="flex items-center gap-3">
+          {adminEmail && (
+            <span style={{ fontSize: "12px", color: S.muted }}>{adminEmail}</span>
+          )}
+          <DarkModeToggle />
+          <a
+            href="/chat"
+            style={{ fontSize: "12px", color: S.muted }}
+            className="transition-colors hover:text-ink"
+          >
+            ← Chat
+          </a>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-8 p-6">
+      {/* ── Main ─────────────────────────────────────────────────────── */}
+      <main className="mx-auto max-w-5xl space-y-10 px-6 py-10">
 
         {/* ── 1. Usage Overview ──────────────────────────────────────── */}
         <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Usage Overview
-            </h2>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
-              {usageDate} · Asia/Manila
-            </span>
-          </div>
+          <SectionLabel label="Usage" meta={`${usageDate} · Asia/Manila`} />
 
-          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
-            <table className="w-full text-sm">
+          <div
+            style={{ border: `1px solid ${S.border}`, borderRadius: "6px", overflow: "hidden" }}
+          >
+            <table className="w-full" style={{ borderCollapse: "collapse" }}>
               <thead>
-                <tr
-                  className="text-left text-xs font-semibold uppercase tracking-wide text-white"
-                  style={{ backgroundColor: "var(--accent)" }}
-                >
-                  <th className="px-4 py-3">User</th>
-                  <th className="px-4 py-3 text-right font-mono">Messages Today</th>
-                  <th className="px-4 py-3 text-right font-mono">Tokens Today</th>
-                  <th className="px-4 py-3 text-right font-mono">Est. Spend (USD)</th>
+                <tr style={{ borderBottom: `1px solid ${S.border}`, backgroundColor: S.raised }}>
+                  <Th>User</Th>
+                  <Th right>Messages</Th>
+                  <Th right>Tokens</Th>
+                  <Th right>Est. Spend</Th>
                 </tr>
               </thead>
               <tbody>
                 {usageRows.length === 0 ? (
-                  <tr className="bg-white dark:bg-gray-900">
-                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-                      No usage data for today yet.
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="text-center"
+                      style={{ padding: "32px 16px", color: S.muted, fontSize: "13px" }}
+                    >
+                      No usage recorded today.
                     </td>
                   </tr>
                 ) : (
                   usageRows.map((row, i) => (
                     <tr
                       key={row.userId}
-                      className={
-                        i % 2 === 0
-                          ? "bg-white dark:bg-gray-900"
-                          : "bg-gray-50 dark:bg-gray-800/50"
-                      }
+                      style={{
+                        backgroundColor: i % 2 === 0 ? S.base : S.raised,
+                        borderBottom: `1px solid ${S.border}`,
+                      }}
                     >
-                      <td className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
-                        {row.email}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-gray-600 dark:text-gray-400">
-                        {row.messagesToday.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-gray-600 dark:text-gray-400">
-                        {row.tokensToday.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-gray-600 dark:text-gray-400">
-                        ${row.estSpendTodayUsd.toFixed(5)}
-                      </td>
+                      <Td>{row.email}</Td>
+                      <Td right mono>{row.messagesToday.toLocaleString()}</Td>
+                      <Td right mono>{row.tokensToday.toLocaleString()}</Td>
+                      <Td right mono>${row.estSpendTodayUsd.toFixed(5)}</Td>
                     </tr>
                   ))
                 )}
               </tbody>
-              <tfoot>
-                <tr className="border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
-                  <td className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Total
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-semibold text-gray-800 dark:text-gray-200">
-                    {totals.messagesToday.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-semibold text-gray-800 dark:text-gray-200">
-                    {totals.tokensToday.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-semibold text-gray-800 dark:text-gray-200">
-                    ${totals.estSpendTodayUsd.toFixed(5)}
-                  </td>
-                </tr>
-              </tfoot>
+              {/* Totals — only shown when there's data */}
+              {usageRows.length > 0 && (
+                <tfoot>
+                  <tr style={{ borderTop: `1px solid ${S.border}`, backgroundColor: S.raised }}>
+                    <td style={{ padding: "10px 16px", fontSize: "11px", color: S.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      Total
+                    </td>
+                    <Td right mono bold>{totals.messages.toLocaleString()}</Td>
+                    <Td right mono bold>{totals.tokens.toLocaleString()}</Td>
+                    <Td right mono bold>${totals.spend.toFixed(5)}</Td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </section>
 
         {/* ── 2. Model Configuration ─────────────────────────────────── */}
         <section>
-          <div className="mb-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Model Configuration
-            </h2>
-          </div>
+          <SectionLabel label="Model Configuration" />
 
-          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
-            <table className="w-full text-sm">
+          <div
+            style={{ border: `1px solid ${S.border}`, borderRadius: "6px", overflow: "hidden" }}
+          >
+            <table className="w-full" style={{ borderCollapse: "collapse" }}>
               <thead>
-                <tr
-                  className="text-left text-xs font-semibold uppercase tracking-wide text-white"
-                  style={{ backgroundColor: "var(--accent)" }}
-                >
-                  <th className="px-4 py-3">Advisor</th>
-                  <th className="px-4 py-3">Provider</th>
-                  <th className="px-4 py-3">Model</th>
-                  <th className="px-4 py-3">Last Updated</th>
-                  <th className="px-4 py-3" />
+                <tr style={{ borderBottom: `1px solid ${S.border}`, backgroundColor: S.raised }}>
+                  <Th>Advisor</Th>
+                  <Th>Provider</Th>
+                  <Th>Model</Th>
+                  <Th>Last saved</Th>
+                  <Th />
                 </tr>
               </thead>
               <tbody>
                 {modelConfigs.length === 0 ? (
-                  <tr className="bg-white dark:bg-gray-900">
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-                      No model configuration found. Run the schema SQL to seed defaults.
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="text-center"
+                      style={{ padding: "32px 16px", color: S.muted, fontSize: "13px" }}
+                    >
+                      No configuration found. Run the schema SQL to seed defaults.
                     </td>
                   </tr>
                 ) : (
                   modelConfigs.map((config, i) => {
-                    const isSaving = savingAdvisor === config.advisorId;
-                    const status = saveStatus[config.advisorId];
+                    const isSaving       = savingAdvisor === config.advisorId;
+                    const status         = saveStatus[config.advisorId];
                     const availableModels = MODELS_BY_PROVIDER[config.provider as Provider] ?? [];
 
                     return (
                       <tr
                         key={config.advisorId}
-                        className={
-                          i % 2 === 0
-                            ? "bg-white dark:bg-gray-900"
-                            : "bg-gray-50 dark:bg-gray-800/50"
-                        }
+                        style={{
+                          backgroundColor: i % 2 === 0 ? S.base : S.raised,
+                          borderBottom: `1px solid ${S.border}`,
+                        }}
                       >
-                        <td className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
+                        {/* Advisor name */}
+                        <td style={{ padding: "12px 16px", fontSize: "13px", fontWeight: 500, color: S.ink }}>
                           {ADVISOR_LABELS[config.advisorId] ?? config.advisorId}
                         </td>
 
-                        <td className="px-4 py-3">
-                          <select
+                        {/* Provider dropdown */}
+                        <td style={{ padding: "12px 16px" }}>
+                          <Select
                             value={config.provider}
-                            onChange={(e) => handleProviderChange(config.advisorId, e.target.value)}
-                            className={selectClass}
+                            onChange={(v) => handleProviderChange(config.advisorId, v)}
                           >
-                            {PROVIDERS.map((p) => (
-                              <option key={p} value={p}>{p}</option>
-                            ))}
-                          </select>
+                            {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
+                          </Select>
                         </td>
 
-                        <td className="px-4 py-3">
-                          <select
+                        {/* Model dropdown */}
+                        <td style={{ padding: "12px 16px" }}>
+                          <Select
                             value={config.model}
-                            onChange={(e) => handleModelChange(config.advisorId, e.target.value)}
-                            className={`w-64 ${selectClass}`}
+                            onChange={(v) => handleModelChange(config.advisorId, v)}
+                            wide
                           >
-                            {availableModels.map((m) => (
-                              <option key={m} value={m}>{m}</option>
-                            ))}
+                            {availableModels.map((m) => <option key={m} value={m}>{m}</option>)}
                             {!availableModels.includes(config.model) && (
                               <option value={config.model}>{config.model}</option>
                             )}
-                          </select>
+                          </Select>
                         </td>
 
-                        <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
+                        {/* Last updated */}
+                        <td style={{ padding: "12px 16px", fontSize: "11px", color: S.muted }}>
                           {config.updatedBy ? (
                             <>
                               <div>{config.updatedBy}</div>
@@ -372,22 +341,21 @@ export default function AdminDashboard({
                               </div>
                             </>
                           ) : (
-                            <span className="text-gray-300 dark:text-gray-600">Never changed</span>
+                            <span style={{ color: S.faint }}>—</span>
                           )}
                         </td>
 
-                        <td className="px-4 py-3">
+                        {/* Save action */}
+                        <td style={{ padding: "12px 16px" }}>
                           <div className="flex items-center gap-2">
-                            <button
+                            <PrimaryButton
                               onClick={() => handleSaveModel(config.advisorId)}
                               disabled={isSaving}
-                              className={primaryBtnClass}
-                              style={{ backgroundColor: "var(--accent)" }}
                             >
                               {isSaving ? "Saving…" : "Save"}
-                            </button>
+                            </PrimaryButton>
                             {status && (
-                              <span className={`text-xs font-medium ${status.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+                              <span style={{ fontSize: "11px", color: status.ok ? "#4a9585" : "#9b4545" }}>
                                 {status.msg}
                               </span>
                             )}
@@ -402,60 +370,254 @@ export default function AdminDashboard({
           </div>
         </section>
 
-        {/* ── 3. Cache Management ────────────────────────────────────── */}
+        {/* ── 3. Prompt Cache ────────────────────────────────────────── */}
         <section>
-          <div className="mb-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Prompt Cache
-            </h2>
-          </div>
+          <SectionLabel label="Prompt Cache" />
 
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-              Prompts and the DNA Digest are cached for 5 minutes. Use these controls to
-              immediately propagate changes made in Google Docs without waiting for the
-              cache to expire.
+          <div
+            style={{
+              border: `1px solid ${S.border}`,
+              borderRadius: "6px",
+              padding: "20px",
+              backgroundColor: S.raised,
+            }}
+          >
+            <p style={{ fontSize: "13px", color: S.muted, marginBottom: "16px", lineHeight: 1.6 }}>
+              Prompts and the DNA Digest cache for 5 minutes. Force a refresh to propagate
+              Google Docs changes immediately.
             </p>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button
+            <div className="flex flex-wrap items-center gap-2">
+              <PrimaryButton
                 onClick={() => handleCacheRefresh("all")}
                 disabled={cacheStatus.loading}
-                className={primaryBtnClass}
-                style={{ backgroundColor: "var(--accent)" }}
               >
-                {cacheStatus.loading ? "Refreshing…" : "Refresh All Caches"}
-              </button>
+                {cacheStatus.loading ? "Refreshing…" : "Refresh all caches"}
+              </PrimaryButton>
 
-              <button
+              <GhostButton
                 onClick={() => handleCacheRefresh("dna")}
                 disabled={cacheStatus.loading}
-                className={secondaryBtnClass}
               >
-                Refresh DNA Digest Only
-              </button>
+                DNA Digest only
+              </GhostButton>
             </div>
 
+            {/* Feedback — inline, no colored box */}
             {cacheStatus.result && (
-              <div
-                className={`mt-4 rounded-lg px-4 py-3 text-sm ${
-                  cacheStatus.ok
-                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
-                    : "border border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
-                }`}
+              <p
+                style={{
+                  marginTop: "12px",
+                  fontSize: "12px",
+                  color: cacheStatus.ok ? "#4a9585" : "#9b4545",
+                }}
               >
                 {cacheStatus.result}
-              </div>
+              </p>
             )}
 
-            <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
-              After refreshing, the next message to any affected advisor will fetch fresh
-              content from Google Docs. The DNA digest will also be regenerated
-              (one additional LLM call, ~$0.0001).
+            <p style={{ marginTop: "16px", fontSize: "11px", color: S.faint, lineHeight: 1.5 }}>
+              Each refresh triggers one LLM call to regenerate the DNA digest (~$0.0001).
             </p>
           </div>
         </section>
       </main>
+
+      {/* ── Footer — mirrors ChatShell ──────────────────────────────── */}
+      <footer
+        className="py-1.5 text-center"
+        style={{ borderTop: `1px solid ${S.border}` }}
+      >
+        <p style={{ fontSize: "11px", color: S.faint }}>
+          All conversations are logged and may be reviewed by Eskwelabs administrators.
+        </p>
+      </footer>
     </div>
+  );
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────
+
+const S_ref = {
+  base:    "#0d0f1a",
+  raised:  "#13151f",
+  border:  "#1e2130",
+  hover:   "#1a1d2e",
+  ink:     "#e2e4ef",
+  muted:   "#6b7280",
+  faint:   "#374151",
+  accent:  "#1B6B5A",
+  acHover: "#155748",
+} as const;
+
+/** Section label — xs uppercase tracking-widest, left teal rule */
+function SectionLabel({ label, meta }: { label: string; meta?: string }) {
+  return (
+    <div className="mb-4 flex items-baseline justify-between">
+      <div className="flex items-center gap-2">
+        {/* 2px teal rule — only teal decoration allowed */}
+        <span
+          style={{ display: "inline-block", width: "2px", height: "12px", backgroundColor: S_ref.accent, borderRadius: "9999px", flexShrink: 0 }}
+          aria-hidden="true"
+        />
+        <span style={{ fontSize: "11px", fontWeight: 500, color: S_ref.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          {label}
+        </span>
+      </div>
+      {meta && (
+        <span style={{ fontSize: "11px", color: S_ref.faint }}>{meta}</span>
+      )}
+    </div>
+  );
+}
+
+/** Table header cell */
+function Th({ children, right }: { children?: React.ReactNode; right?: boolean }) {
+  return (
+    <th
+      style={{
+        padding: "10px 16px",
+        fontSize: "11px",
+        fontWeight: 500,
+        color: S_ref.muted,
+        textAlign: right ? "right" : "left",
+        textTransform: "uppercase",
+        letterSpacing: "0.06em",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+/** Table data cell */
+function Td({
+  children,
+  right,
+  mono,
+  bold,
+}: {
+  children?: React.ReactNode;
+  right?: boolean;
+  mono?: boolean;
+  bold?: boolean;
+}) {
+  return (
+    <td
+      style={{
+        padding: "10px 16px",
+        fontSize: "13px",
+        color: bold ? S_ref.ink : S_ref.muted,
+        textAlign: right ? "right" : "left",
+        fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined,
+        fontWeight: bold ? 500 : undefined,
+      }}
+    >
+      {children}
+    </td>
+  );
+}
+
+/** Styled native select — matches the dark surface */
+function Select({
+  value,
+  onChange,
+  wide,
+  children,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  wide?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{
+        width: wide ? "240px" : undefined,
+        backgroundColor: S_ref.base,
+        border: `1px solid ${S_ref.border}`,
+        borderRadius: "4px",
+        color: S_ref.ink,
+        fontSize: "12px",
+        padding: "5px 8px",
+        outline: "none",
+        cursor: "pointer",
+      }}
+      onFocus={(e)  => { e.target.style.borderColor = S_ref.accent; }}
+      onBlur={(e)   => { e.target.style.borderColor = S_ref.border; }}
+    >
+      {children}
+    </select>
+  );
+}
+
+/** Primary action button — teal, used only for save / primary refresh */
+function PrimaryButton({
+  children,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        backgroundColor: S_ref.accent,
+        color: "#fff",
+        border: "none",
+        borderRadius: "4px",
+        padding: "6px 14px",
+        fontSize: "12px",
+        fontWeight: 500,
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        transition: "background-color 150ms ease",
+      }}
+      onMouseEnter={(e) => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.backgroundColor = S_ref.acHover; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = S_ref.accent; }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Ghost button — secondary actions, no teal */
+function GhostButton({
+  children,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        backgroundColor: "transparent",
+        color: S_ref.muted,
+        border: `1px solid ${S_ref.border}`,
+        borderRadius: "4px",
+        padding: "6px 14px",
+        fontSize: "12px",
+        fontWeight: 400,
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        transition: "background-color 150ms ease, color 150ms ease",
+      }}
+      onMouseEnter={(e) => { if (!disabled) { (e.currentTarget as HTMLButtonElement).style.backgroundColor = S_ref.hover; (e.currentTarget as HTMLButtonElement).style.color = S_ref.ink; } }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = S_ref.muted; }}
+    >
+      {children}
+    </button>
   );
 }
