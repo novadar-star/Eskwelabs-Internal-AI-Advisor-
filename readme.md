@@ -1,6 +1,6 @@
 
 
-#Eskwelabs Internal AI Advisor 
+# Eskwelabs Internal AI Advisor 
 
 ## First project for the AI development solutions track.
 
