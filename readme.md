@@ -1,5 +1,8 @@
-First project for the AI development solutions track.
 
-Eskwelabs INternal AI Advisor 
-is a
-Created by Darla and Cine.
+
+#Eskwelabs Internal AI Advisor 
+
+## First project for the AI development solutions track.
+
+
+### Created by Darla and Cine.
