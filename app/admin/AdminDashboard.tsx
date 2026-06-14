@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import type { UsageRow, ModelConfigRow } from "@/app/admin/page";
+import DarkModeToggle from "@/components/DarkModeToggle";
 
 // ── Model options ──────────────────────────────────────────────────────────
 
@@ -192,21 +193,24 @@ export default function AdminDashboard({
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white px-6 py-4">
+      <header className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">Admin Dashboard</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Admin Dashboard
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Usage monitoring, model configuration, and cache management.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400">{adminEmail}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{adminEmail}</span>
+            <DarkModeToggle />
             <a
               href="/chat"
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 border border-gray-200 transition-colors"
+              className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
             >
               ← Back to Chat
             </a>
@@ -218,44 +222,44 @@ export default function AdminDashboard({
         {/* ── 1. Usage Overview ──────────────────────────────────────── */}
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-800">
+            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
               Usage Overview
             </h2>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               Date (PH time): {usageDate}
             </span>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
                   <th className="px-4 py-3">User</th>
                   <th className="px-4 py-3 text-right">Messages Today</th>
                   <th className="px-4 py-3 text-right">Tokens Today</th>
                   <th className="px-4 py-3 text-right">Est. Spend (USD)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {usageRows.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400">
+                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
                       No usage data for today yet.
                     </td>
                   </tr>
                 ) : (
                   usageRows.map((row) => (
-                    <tr key={row.userId} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-700">
+                    <tr key={row.userId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <td className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
                         {row.email}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-600">
+                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                         {row.messagesToday.toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-600">
+                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                         {row.tokensToday.toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-600">
+                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                         ${row.estSpendTodayUsd.toFixed(5)}
                       </td>
                     </tr>
@@ -264,8 +268,8 @@ export default function AdminDashboard({
               </tbody>
               {/* Totals row */}
               <tfoot>
-                <tr className="border-t border-gray-200 bg-gray-50 font-semibold text-gray-800">
-                  <td className="px-4 py-3 text-xs uppercase tracking-wide text-gray-500">
+                <tr className="border-t border-gray-200 bg-gray-50 font-semibold text-gray-800 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-200">
+                  <td className="px-4 py-3 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Total
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -285,13 +289,13 @@ export default function AdminDashboard({
 
         {/* ── 2. Model Configuration ─────────────────────────────────── */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-gray-800">
+          <h2 className="mb-3 text-base font-semibold text-gray-800 dark:text-gray-200">
             Model Configuration
           </h2>
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
                   <th className="px-4 py-3">Advisor</th>
                   <th className="px-4 py-3">Provider</th>
                   <th className="px-4 py-3">Model</th>
@@ -299,10 +303,10 @@ export default function AdminDashboard({
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {modelConfigs.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
                       No model configuration found. Run the schema SQL to seed defaults.
                     </td>
                   </tr>
@@ -314,8 +318,8 @@ export default function AdminDashboard({
                       MODELS_BY_PROVIDER[config.provider as Provider] ?? [];
 
                     return (
-                      <tr key={config.advisorId} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-700">
+                      <tr key={config.advisorId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                        <td className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
                           {ADVISOR_LABELS[config.advisorId] ?? config.advisorId}
                         </td>
 
@@ -326,7 +330,7 @@ export default function AdminDashboard({
                             onChange={(e) =>
                               handleProviderChange(config.advisorId, e.target.value)
                             }
-                            className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
+                            className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-gray-500"
                           >
                             {PROVIDERS.map((p) => (
                               <option key={p} value={p}>
@@ -343,7 +347,7 @@ export default function AdminDashboard({
                             onChange={(e) =>
                               handleModelChange(config.advisorId, e.target.value)
                             }
-                            className="w-64 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
+                            className="w-64 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-gray-500"
                           >
                             {availableModels.map((m) => (
                               <option key={m} value={m}>
@@ -358,7 +362,7 @@ export default function AdminDashboard({
                         </td>
 
                         {/* Last updated */}
-                        <td className="px-4 py-3 text-xs text-gray-400">
+                        <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
                           {config.updatedBy ? (
                             <>
                               <div>{config.updatedBy}</div>
@@ -373,7 +377,7 @@ export default function AdminDashboard({
                               </div>
                             </>
                           ) : (
-                            <span className="text-gray-300">Never changed</span>
+                            <span className="text-gray-300 dark:text-gray-600">Never changed</span>
                           )}
                         </td>
 
@@ -383,14 +387,16 @@ export default function AdminDashboard({
                             <button
                               onClick={() => handleSaveModel(config.advisorId)}
                               disabled={isSaving}
-                              className="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                              className="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
                             >
                               {isSaving ? "Saving…" : "Save"}
                             </button>
                             {status && (
                               <span
                                 className={`text-xs ${
-                                  status.ok ? "text-green-600" : "text-red-500"
+                                  status.ok
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-500 dark:text-red-400"
                                 }`}
                               >
                                 {status.msg}
@@ -409,11 +415,11 @@ export default function AdminDashboard({
 
         {/* ── 3. Cache Management ────────────────────────────────────── */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-gray-800">
+          <h2 className="mb-3 text-base font-semibold text-gray-800 dark:text-gray-200">
             Prompt Cache
           </h2>
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <p className="mb-4 text-sm text-gray-500">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
               Prompts and the DNA Digest are cached for 5 minutes. Use these
               controls to immediately propagate changes made in Google Docs
               without waiting for the cache to expire.
@@ -423,7 +429,7 @@ export default function AdminDashboard({
               <button
                 onClick={() => handleCacheRefresh("all")}
                 disabled={cacheStatus.loading}
-                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
               >
                 {cacheStatus.loading ? "Refreshing…" : "Refresh All Caches"}
               </button>
@@ -431,7 +437,7 @@ export default function AdminDashboard({
               <button
                 onClick={() => handleCacheRefresh("dna")}
                 disabled={cacheStatus.loading}
-                className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 Refresh DNA Digest Only
               </button>
@@ -442,15 +448,15 @@ export default function AdminDashboard({
               <div
                 className={`mt-4 rounded-lg px-4 py-3 text-sm ${
                   cacheStatus.ok
-                    ? "border border-green-200 bg-green-50 text-green-700"
-                    : "border border-red-200 bg-red-50 text-red-700"
+                    ? "border border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-400"
+                    : "border border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
                 }`}
               >
                 {cacheStatus.result}
               </div>
             )}
 
-            <p className="mt-4 text-xs text-gray-400">
+            <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
               After refreshing, the next message sent to any affected advisor
               will fetch fresh content from Google Docs. The DNA digest will
               also be regenerated (one additional LLM call, ~$0.0001).
