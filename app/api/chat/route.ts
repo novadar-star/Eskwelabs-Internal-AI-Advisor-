@@ -49,6 +49,11 @@ import { auth } from "@/lib/auth";
 import { getSystemPrompt } from "@/lib/prompt-loader";
 import { persistTurn } from "@/lib/persistence";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import {
+  checkCostGuard,
+  updateUsageCounters,
+  logBlockedMessage,
+} from "@/lib/cost-guard";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -149,7 +154,35 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 3. Guard: OpenRouter API key ──────────────────────────────────────
+  // ── 3. Cost guard — MUST pass before any LLM call ────────────────────
+  // Checks message limit, token limit, daily budget, monthly budget,
+  // and per-minute rate limit. Hard blocks if ANY check fails.
+
+  // We need the model to estimate costs in budget checks, but we haven't
+  // looked it up yet. Use a lightweight pre-check with an empty model string
+  // (budget checks don't need the model; rate/message/token checks don't either).
+  // We'll re-use the full model for the post-call usage update below.
+  const guardResult = await checkCostGuard(userId, advisorId);
+
+  if (!guardResult.allowed) {
+    // Log the blocked attempt to the messages table for audit
+    await logBlockedMessage(
+      userId,
+      advisorId,
+      conversationId ?? null,
+      message.trim(),
+      guardResult.reason,
+      guardResult.message
+    );
+
+    // Return the block message as a 429 so the client can display it clearly
+    return NextResponse.json(
+      { error: guardResult.message, blocked: true, reason: guardResult.reason },
+      { status: 429 }
+    );
+  }
+
+  // ── 4. Guard: OpenRouter API key ──────────────────────────────────────
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -159,18 +192,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 4. Load system prompt (Google Docs with hardcoded fallback) ───────
+  // ── 5. Load system prompt (Google Docs with hardcoded fallback) ───────
   // Never throws — falls back to the hardcoded prompt if Docs unavailable.
 
   const { systemPrompt, promptDocRevision, dnaDigestVersion } =
     await getSystemPrompt(advisorId);
 
-  // ── 5. Look up the active model for this advisor ─────────────────────
+  // ── 6. Look up the active model for this advisor ─────────────────────
   // Reads from Supabase model_config — admins can change this via the
   // admin dashboard without redeployment. Falls back to DEFAULT_MODEL.
   const MODEL = await getModelForAdvisor(advisorId);
 
-  // ── 6. Build OpenAI-format messages ──────────────────────────────────
+  // ── 7. Build OpenAI-format messages ──────────────────────────────────
   // The system prompt is the first message — assembled server-side,
   // never returned to the browser in any form.
 
@@ -183,7 +216,7 @@ export async function POST(request: NextRequest) {
     { role: "user" as const, content: message.trim() },
   ];
 
-  // ── 6. Call OpenRouter ────────────────────────────────────────────────
+  // ── 8. Call OpenRouter ────────────────────────────────────────────────
 
   let openRouterResponse: Response;
   try {
@@ -371,6 +404,18 @@ export async function POST(request: NextRequest) {
         console.info(
           `[api/chat] Turn persisted — conv=${result.conversationId} latency=${latencyMs}ms`
         );
+
+        // ── Update usage counters after successful LLM call ───────────
+        // Uses actual token counts from OpenRouter's usage event.
+        // Falls back to 0 if OpenRouter didn't return usage (non-fatal).
+        if (promptTokens !== null && completionTokens !== null) {
+          await updateUsageCounters(
+            userId,
+            promptTokens,
+            completionTokens,
+            MODEL
+          );
+        }
 
         // After persistence, append a special metadata line so the client
         // knows the conversation ID without needing a separate request.
