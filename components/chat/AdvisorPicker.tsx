@@ -1,13 +1,7 @@
 "use client";
 
-/**
- * components/chat/AdvisorPicker.tsx
- *
- * Advisor selection screen shown when no advisor is active.
- * Clean card grid with monochrome SVG icons and accent left border.
- */
-
 import type { Advisor, AdvisorId } from "@/lib/chat-types";
+import { ADVISOR_BORDER_COLOR } from "@/lib/advisors";
 import AdvisorIcon from "@/components/AdvisorIcon";
 
 interface AdvisorPickerProps {
@@ -15,28 +9,21 @@ interface AdvisorPickerProps {
   onSelectAdvisor: (advisorId: AdvisorId) => void;
 }
 
-export default function AdvisorPicker({
-  advisors,
-  onSelectAdvisor,
-}: AdvisorPickerProps) {
+export default function AdvisorPicker({ advisors, onSelectAdvisor }: AdvisorPickerProps) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-8">
-      {/* Heading */}
-      <div className="mb-8 text-center">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-          Select an Advisor
-        </h2>
-        <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
-          Choose the advisor that best fits what you need help with today.
-        </p>
-      </div>
+    <div className="flex flex-1 flex-col overflow-y-auto px-10 py-10">
+      {/* Section label — small, uppercase, tracking-widest, muted */}
+      <p className="mb-5 text-xs font-medium uppercase tracking-widest text-ink-muted">
+        Select an Advisor
+      </p>
 
-      {/* Advisor cards grid */}
-      <div className="grid w-full max-w-3xl gap-4 sm:grid-cols-3">
-        {advisors.map((advisor) => (
-          <AdvisorCard
+      {/* Vertical list — full-width rows */}
+      <div className="w-full max-w-xl">
+        {advisors.map((advisor, i) => (
+          <AdvisorRow
             key={advisor.id}
             advisor={advisor}
+            isLast={i === advisors.length - 1}
             onClick={() => onSelectAdvisor(advisor.id)}
           />
         ))}
@@ -45,54 +32,53 @@ export default function AdvisorPicker({
   );
 }
 
-// ── AdvisorCard ────────────────────────────────────────────────────────────
+// ── AdvisorRow ─────────────────────────────────────────────────────────────
 
-interface AdvisorCardProps {
+interface AdvisorRowProps {
   advisor: Advisor;
+  isLast: boolean;
   onClick: () => void;
 }
 
-function AdvisorCard({ advisor, onClick }: AdvisorCardProps) {
+function AdvisorRow({ advisor, isLast, onClick }: AdvisorRowProps) {
+  const borderColor = ADVISOR_BORDER_COLOR[advisor.id] ?? "var(--accent)";
+
   return (
-    <button
-      onClick={onClick}
-      className="group relative flex flex-col items-start overflow-hidden rounded-xl border border-gray-200 bg-white p-5 text-left transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600"
-      aria-label={`Start chat with ${advisor.name}`}
-    >
-      {/* Left accent border */}
-      <span
-        className="absolute left-0 top-0 h-full w-1 rounded-l-xl bg-accent opacity-80"
-        aria-hidden="true"
-      />
-
-      {/* Icon */}
-      <div
-        className="mb-4 ml-2 flex h-10 w-10 items-center justify-center rounded-lg bg-accent-light text-accent"
-        aria-hidden="true"
+    <>
+      <button
+        onClick={onClick}
+        aria-label={`Open ${advisor.name}`}
+        className="group flex w-full items-center gap-4 rounded px-3 py-3.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none"
       >
-        <AdvisorIcon icon={advisor.iconLabel} className="h-5 w-5" />
-      </div>
+        {/* Icon — 20px, muted, advisor color */}
+        <span
+          className="flex-shrink-0"
+          style={{ color: borderColor, opacity: 0.7 }}
+          aria-hidden="true"
+        >
+          <AdvisorIcon icon={advisor.iconLabel} className="h-5 w-5" />
+        </span>
 
-      {/* Advisor name */}
-      <h3 className="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-        {advisor.name}
-      </h3>
+        {/* Name */}
+        <span className="flex-shrink-0 text-[15px] font-semibold text-ink">
+          {advisor.name}
+        </span>
 
-      {/* Description — max 2 lines via line-clamp */}
-      <p className="ml-2 mt-1.5 line-clamp-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-        {advisor.description}
-      </p>
+        {/* Description — right-aligned, muted, 13px, single line */}
+        <span className="min-w-0 flex-1 truncate text-right text-[13px] text-ink-muted">
+          {advisor.description}
+        </span>
 
-      {/* CTA button */}
-      <div className="ml-2 mt-4">
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors group-hover:bg-accent-hover">
-          Start chat
+        {/* Arrow — appears only on hover */}
+        <span
+          className="flex-shrink-0 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100"
+          aria-hidden="true"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 16 16"
             fill="currentColor"
-            className="h-3 w-3 transition-transform group-hover:translate-x-0.5"
-            aria-hidden="true"
+            className="h-3.5 w-3.5"
           >
             <path
               fillRule="evenodd"
@@ -101,7 +87,12 @@ function AdvisorCard({ advisor, onClick }: AdvisorCardProps) {
             />
           </svg>
         </span>
-      </div>
-    </button>
+      </button>
+
+      {/* Separator between rows — not after last */}
+      {!isLast && (
+        <div className="mx-3 border-t" style={{ borderColor: "#1e2130" }} />
+      )}
+    </>
   );
 }

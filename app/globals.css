@@ -1,20 +1,40 @@
-/*
- * app/globals.css
- *
- * Global stylesheet loaded by the root layout.
- * Tailwind's three directive layers are required — do not remove them.
- *
- * Accent color is defined in tailwind.config.ts as `accent`.
- * Use: bg-accent, text-accent, border-accent, bg-accent-light, hover:bg-accent-hover
- */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Kept as CSS vars for inline style="" usage (e.g. style={{ backgroundColor: "var(--accent)" }}) */
   --accent:       #1B6B5A;
   --accent-hover: #155748;
-  --accent-light: #e8f4f1;
+  --accent-dim:   #0f3d31;
+
+  /* Per-advisor indicator colors */
+  --advisor-dashboard: #3b6ea5;
+  --advisor-ssot:      #7c5c9e;
+  --advisor-modeling:  #4a8c6a;
+}
+
+@layer base {
+  /* Dark-first: the app always runs in dark mode as default */
+  html {
+    background-color: #0d0f1a;
+    color: #e2e4ef;
+  }
+
+  * {
+    /* Global 150ms transitions on color/bg — no bounce */
+    transition-timing-function: ease;
+    transition-duration: 150ms;
+  }
+
+  /* Scrollbar — subtle, matches surface */
+  ::-webkit-scrollbar       { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1e2130; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2a2e40; }
+
+  /* Focus ring — teal, 1px, offset 2px, no glow */
+  :focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+  }
 }

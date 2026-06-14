@@ -1,14 +1,8 @@
 "use client";
 
-/**
- * components/chat/Sidebar.tsx
- *
- * Left sidebar — conversation history + new chat button.
- * Redesigned: accent left border on active item, advisor pill badges,
- * divider below header, improved new-chat button.
- */
-
 import type { Advisor, Conversation } from "@/lib/chat-types";
+import { ADVISOR_BORDER_COLOR } from "@/lib/advisors";
+import DarkModeToggle from "@/components/DarkModeToggle";
 
 interface SidebarProps {
   conversations: Conversation[];
@@ -23,90 +17,73 @@ export default function Sidebar({
   activeConversationId,
   onSelectConversation,
   onNewChat,
-  advisors,
 }: SidebarProps) {
   return (
-    <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-gray-200 bg-white md:flex dark:border-gray-800 dark:bg-gray-900">
-      {/* ── Header ────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-          Conversations
-        </span>
-        <button
-          onClick={onNewChat}
-          title="New conversation"
-          aria-label="Start a new conversation"
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-gray-400 transition-colors hover:border-accent hover:bg-accent-light hover:text-accent dark:border-gray-700 dark:text-gray-500 dark:hover:border-accent dark:hover:bg-accent/10 dark:hover:text-accent"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="h-3.5 w-3.5"
-            aria-hidden="true"
-          >
-            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Divider */}
-      <div className="mx-4 border-t border-gray-100 dark:border-gray-800" />
-
-      {/* ── Conversation list ──────────────────────────────────────────── */}
+    /*
+     * Sidebar surface is slightly lighter than the main bg (#13151f vs #0d0f1a)
+     * creating depth without a hard visible border.
+     * No right border — separation comes from the surface colour difference.
+     */
+    <aside
+      className="hidden w-60 flex-shrink-0 flex-col md:flex"
+      style={{ backgroundColor: "#13151f" }}
+    >
+      {/* ── Conversation list — takes all available space ── */}
       <nav
-        className="flex-1 overflow-y-auto py-2"
-        aria-label="Past conversations"
+        className="flex-1 overflow-y-auto px-2 pt-4"
+        aria-label="Conversations"
       >
         {conversations.length === 0 ? (
-          <p className="px-4 py-8 text-center text-xs text-gray-400 dark:text-gray-500">
+          <p className="px-3 py-8 text-center text-xs text-ink-muted">
             No conversations yet.
-            <br />
-            Select an advisor to start.
           </p>
         ) : (
-          <ul className="space-y-0.5 px-2">
+          <ul className="space-y-px">
             {conversations.map((conv) => {
-              const advisor = advisors.find((a) => a.id === conv.advisorId);
               const isActive = conv.id === activeConversationId;
+              const borderColor = ADVISOR_BORDER_COLOR[conv.advisorId] ?? "var(--accent)";
 
               return (
                 <li key={conv.id}>
                   <button
                     onClick={() => onSelectConversation(conv)}
-                    className={`group relative w-full overflow-hidden rounded-lg px-3 py-2.5 text-left transition-colors ${
-                      isActive
-                        ? "bg-accent-light text-gray-900 dark:bg-accent/10 dark:text-gray-100"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
-                    }`}
                     aria-current={isActive ? "true" : undefined}
+                    className={`group relative w-full rounded px-3 py-2.5 text-left transition-colors ${
+                      isActive
+                        ? "text-ink"
+                        : "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                    }`}
+                    style={
+                      isActive
+                        ? { backgroundColor: "#1a1d2e" }
+                        : undefined
+                    }
                   >
-                    {/* Active left border indicator */}
-                    {isActive && (
-                      <span
-                        className="absolute left-0 top-0 h-full w-0.5 rounded-r bg-accent"
-                        aria-hidden="true"
-                      />
-                    )}
+                    {/* Left border indicator — always visible, 2px, advisor color */}
+                    <span
+                      className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
+                      style={{ backgroundColor: isActive ? "var(--accent)" : borderColor, opacity: isActive ? 1 : 0.45 }}
+                      aria-hidden="true"
+                    />
 
-                    {/* Conversation title */}
-                    <p className="truncate text-sm font-medium leading-snug">
+                    {/* Title — font-medium, max 2 lines, no mid-word ellipsis */}
+                    <p
+                      className="pl-2 text-[13px] font-medium leading-snug"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        wordBreak: "break-word",
+                      }}
+                    >
                       {conv.title}
                     </p>
 
-                    {/* Advisor pill + relative time */}
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                        isActive
-                          ? "bg-accent text-white"
-                          : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                      }`}>
-                        {advisor?.shortName ?? conv.advisorId}
-                      </span>
-                      <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                        {formatRelativeDate(conv.updatedAt)}
-                      </span>
-                    </div>
+                    {/* Meta: relative date */}
+                    <p className="mt-0.5 pl-2 text-2xs text-ink-muted">
+                      {formatRelativeDate(conv.updatedAt)}
+                    </p>
                   </button>
                 </li>
               );
@@ -114,6 +91,35 @@ export default function Sidebar({
           </ul>
         )}
       </nav>
+
+      {/* ── Bottom controls ─────────────────────────────────────────── */}
+      <div
+        className="flex-shrink-0 border-t px-2 py-3"
+        style={{ borderColor: "#1e2130" }}
+      >
+        <div className="flex items-center gap-2">
+          {/* Dark mode toggle — sits in sidebar bottom */}
+          <DarkModeToggle />
+
+          {/* New conversation — ghost, full-width */}
+          <button
+            onClick={onNewChat}
+            aria-label="New conversation"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs text-ink-muted transition-colors hover:bg-surface-hover hover:text-ink"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className="h-3.5 w-3.5"
+              aria-hidden="true"
+            >
+              <path d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5Z" />
+            </svg>
+            New conversation
+          </button>
+        </div>
+      </div>
     </aside>
   );
 }
@@ -124,7 +130,6 @@ function formatRelativeDate(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays}d ago`;
