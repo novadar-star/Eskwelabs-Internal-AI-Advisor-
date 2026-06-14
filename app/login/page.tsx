@@ -24,7 +24,7 @@ import SignInButton from "@/app/login/SignInButton";
 // We show generic messages to avoid leaking system details.
 const ERROR_MESSAGES: Record<string, string> = {
   not_authorized:
-    "You are not authorized to access this platform. Contact an Eskwelabs admin if you believe this is a mistake.",
+    "You are not authorized to access this platform. Please ontact an Eskwelabs admin if you believe this is a mistake.",
   server_error:
     "A server error occurred during sign-in. Please try again in a moment.",
   OAuthCallback:
@@ -51,7 +51,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         {/* Logo / branding area */}
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            Eskwelabs AI Advisor
+            Eskwelabs Internal AI Advisor
           </h1>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             Sign in with your Eskwelabs Google account to continue.

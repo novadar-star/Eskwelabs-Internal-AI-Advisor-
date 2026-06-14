@@ -351,8 +351,7 @@ export default function ChatShell({ userEmail, userRole }: ChatShellProps) {
 
       {/* Persistent footer */}
       <footer className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-2 text-center text-xs text-gray-400 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-500">
-        Responses are AI-generated and may be inaccurate. All conversations are
-        logged and may be reviewed by Eskwelabs administrators.
+        All conversations are logged and may be reviewed by Eskwelabs administrators.
       </footer>
     </div>
   );
