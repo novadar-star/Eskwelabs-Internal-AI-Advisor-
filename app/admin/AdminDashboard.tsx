@@ -40,17 +40,19 @@ const ADVISOR_LABELS: Record<string, string> = {
 };
 
 // ── Shared inline styles (avoids repeating magic strings) ─────────────────
+// All values reference CSS custom properties defined in globals.css,
+// so they automatically respond to the dark/light class on <html>.
 
 const S = {
-  base:    "#0d0f1a",
-  raised:  "#13151f",
-  border:  "#1e2130",
-  hover:   "#1a1d2e",
-  ink:     "#e2e4ef",
-  muted:   "#6b7280",
-  faint:   "#374151",
-  accent:  "#1B6B5A",
-  acHover: "#155748",
+  base:    "var(--bg-base)",
+  raised:  "var(--bg-raised)",
+  border:  "var(--border)",
+  hover:   "var(--bg-hover)",
+  ink:     "var(--ink)",
+  muted:   "var(--ink-muted)",
+  faint:   "var(--ink-faint)",
+  accent:  "var(--accent)",
+  acHover: "var(--accent-hover)",
 } as const;
 
 // ── Props ──────────────────────────────────────────────────────────────────
@@ -439,15 +441,15 @@ export default function AdminDashboard({
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 const S_ref = {
-  base:    "#0d0f1a",
-  raised:  "#13151f",
-  border:  "#1e2130",
-  hover:   "#1a1d2e",
-  ink:     "#e2e4ef",
-  muted:   "#6b7280",
-  faint:   "#374151",
-  accent:  "#1B6B5A",
-  acHover: "#155748",
+  base:    "var(--bg-base)",
+  raised:  "var(--bg-raised)",
+  border:  "var(--border)",
+  hover:   "var(--bg-hover)",
+  ink:     "var(--ink)",
+  muted:   "var(--ink-muted)",
+  faint:   "var(--ink-faint)",
+  accent:  "var(--accent)",
+  acHover: "var(--accent-hover)",
 } as const;
 
 /** Section label — xs uppercase tracking-widest, left teal rule */

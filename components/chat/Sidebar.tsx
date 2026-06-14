@@ -26,7 +26,7 @@ export default function Sidebar({
      */
     <aside
       className="hidden w-60 flex-shrink-0 flex-col md:flex"
-      style={{ backgroundColor: "#13151f" }}
+      style={{ backgroundColor: "var(--bg-raised)", borderRight: "1px solid var(--border)" }}
     >
       {/* ── Conversation list — takes all available space ── */}
       <nav
@@ -34,7 +34,7 @@ export default function Sidebar({
         aria-label="Conversations"
       >
         {conversations.length === 0 ? (
-          <p className="px-3 py-8 text-center text-xs text-ink-muted">
+          <p className="px-3 py-8 text-center text-xs" style={{ color: "var(--ink-muted)" }}>
             No conversations yet.
           </p>
         ) : (
@@ -48,16 +48,13 @@ export default function Sidebar({
                   <button
                     onClick={() => onSelectConversation(conv)}
                     aria-current={isActive ? "true" : undefined}
-                    className={`group relative w-full rounded px-3 py-2.5 text-left transition-colors ${
-                      isActive
-                        ? "text-ink"
-                        : "text-ink-muted hover:bg-surface-hover hover:text-ink"
-                    }`}
-                    style={
-                      isActive
-                        ? { backgroundColor: "#1a1d2e" }
-                        : undefined
-                    }
+                    className="group relative w-full rounded px-3 py-2.5 text-left transition-colors"
+                    style={{
+                      backgroundColor: isActive ? "var(--bg-hover)" : "transparent",
+                      color: isActive ? "var(--ink)" : "var(--ink-muted)",
+                    }}
+                    onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ink)"; }}
+                    onMouseLeave={(e) => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-muted)"; } }}
                   >
                     {/* Left border indicator — always visible, 2px, advisor color */}
                     <span
@@ -95,7 +92,7 @@ export default function Sidebar({
       {/* ── Bottom controls ─────────────────────────────────────────── */}
       <div
         className="flex-shrink-0 border-t px-2 py-3"
-        style={{ borderColor: "#1e2130" }}
+        style={{ borderColor: "var(--border)" }}
       >
         <div className="flex items-center gap-2">
           {/* Dark mode toggle — sits in sidebar bottom */}
@@ -105,7 +102,10 @@ export default function Sidebar({
           <button
             onClick={onNewChat}
             aria-label="New conversation"
-            className="flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs text-ink-muted transition-colors hover:bg-surface-hover hover:text-ink"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors"
+            style={{ color: "var(--ink-muted)" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ink)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-muted)"; }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

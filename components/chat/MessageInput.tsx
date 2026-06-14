@@ -42,7 +42,7 @@ export default function MessageInput({ value, isSending, advisorName, onChange, 
   return (
     <div
       className="flex-shrink-0 px-5 py-4"
-      style={{ borderTop: "1px solid #1e2130" }}
+      style={{ borderTop: "1px solid var(--border)", backgroundColor: "var(--bg-base)" }}
     >
       <div className="flex items-end gap-2">
         {/* Textarea */}
@@ -59,13 +59,14 @@ export default function MessageInput({ value, isSending, advisorName, onChange, 
           style={{
             minHeight: "42px",
             maxHeight: "160px",
-            backgroundColor: "#13151f",
-            border: "1px solid #1e2130",
+            backgroundColor: "var(--input-bg)",
+            border: "1px solid var(--input-border)",
             outline: "none",
             lineHeight: "1.6",
+            color: "var(--ink)",
           }}
-          onFocus={(e) => { e.target.style.borderColor = "var(--accent)"; e.target.style.outline = "none"; }}
-          onBlur={(e) => { e.target.style.borderColor = "#1e2130"; }}
+          onFocus={(e) => { e.target.style.borderColor = "var(--accent)"; }}
+          onBlur={(e)  => { e.target.style.borderColor = "var(--input-border)"; }}
         />
 
         {/* Send — circular, accent, only icon */}

@@ -7,6 +7,7 @@ import Sidebar from "@/components/chat/Sidebar";
 import AdvisorPicker from "@/components/chat/AdvisorPicker";
 import ChatView from "@/components/chat/ChatView";
 import { googleSignOut } from "@/app/actions/auth";
+import DarkModeToggle from "@/components/DarkModeToggle";
 
 interface ChatShellProps {
   userId: string;
@@ -155,12 +156,12 @@ export default function ChatShell({ userRole }: ChatShellProps) {
   const showChatView = selectedAdvisorId !== null && activeAdvisor != null;
 
   return (
-    <div className="flex h-screen flex-col" style={{ backgroundColor: "#0d0f1a" }}>
+    <div className="flex h-screen flex-col" style={{ backgroundColor: "var(--bg-base)" }}>
 
       {/* ── Header — reduced height ─────────────────────────────────── */}
       <header
         className="flex h-11 flex-shrink-0 items-center justify-between px-5"
-        style={{ borderBottom: "1px solid #1e2130" }}
+        style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--bg-base)" }}
       >
         {/* Wordmark */}
         <span className="text-[13px] font-semibold tracking-tight text-ink">
@@ -178,6 +179,8 @@ export default function ChatShell({ userRole }: ChatShellProps) {
               Admin
             </a>
           )}
+
+          <DarkModeToggle />
 
           {/* Sign out — plain text, no decoration */}
           <form action={googleSignOut}>
@@ -201,7 +204,7 @@ export default function ChatShell({ userRole }: ChatShellProps) {
           advisors={ADVISORS}
         />
 
-        <main className="flex flex-1 flex-col overflow-hidden" style={{ backgroundColor: "#0d0f1a" }}>
+        <main className="flex flex-1 flex-col overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
           {showChatView ? (
             <ChatView
               key={activeConversationId ?? "new"}
@@ -222,9 +225,9 @@ export default function ChatShell({ userRole }: ChatShellProps) {
       {/* ── Footer ─────────────────────────────────────────────────── */}
       <footer
         className="flex-shrink-0 py-1.5 text-center"
-        style={{ borderTop: "1px solid #1e2130" }}
+        style={{ borderTop: "1px solid var(--border)", backgroundColor: "var(--bg-base)" }}
       >
-        <p className="text-2xs" style={{ color: "#374151" }}>
+        <p className="text-2xs" style={{ color: "var(--ink-faint)" }}>
           All conversations are logged and may be reviewed by Eskwelabs administrators.
         </p>
       </footer>

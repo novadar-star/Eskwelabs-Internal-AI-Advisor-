@@ -11,7 +11,9 @@ interface AdvisorPickerProps {
 
 export default function AdvisorPicker({ advisors, onSelectAdvisor }: AdvisorPickerProps) {
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto px-10 py-10">
+    <div className="flex flex-1 flex-col overflow-y-auto px-10 py-10"
+      style={{ backgroundColor: "var(--bg-base)" }}
+    >
       {/* Section label — small, uppercase, tracking-widest, muted */}
       <p className="mb-5 text-xs font-medium uppercase tracking-widest text-ink-muted">
         Select an Advisor
@@ -48,7 +50,10 @@ function AdvisorRow({ advisor, isLast, onClick }: AdvisorRowProps) {
       <button
         onClick={onClick}
         aria-label={`Open ${advisor.name}`}
-        className="group flex w-full items-center gap-4 rounded px-3 py-3.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none"
+        className="group flex w-full items-center gap-4 rounded px-3 py-3.5 text-left transition-colors focus-visible:outline-none"
+        style={{ backgroundColor: "transparent" }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--bg-hover)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; }}
       >
         {/* Icon — 20px, muted, advisor color */}
         <span
@@ -91,7 +96,7 @@ function AdvisorRow({ advisor, isLast, onClick }: AdvisorRowProps) {
 
       {/* Separator between rows — not after last */}
       {!isLast && (
-        <div className="mx-3 border-t" style={{ borderColor: "#1e2130" }} />
+        <div className="mx-3 border-t" style={{ borderColor: "var(--border)" }} />
       )}
     </>
   );

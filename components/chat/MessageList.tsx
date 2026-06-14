@@ -21,11 +21,12 @@ export default function MessageList({ messages, isSending, advisor }: MessageLis
   return (
     <div
       className="flex-1 overflow-y-auto px-6 py-6"
+      style={{ backgroundColor: "var(--bg-base)" }}
       role="log"
       aria-label="Conversation messages"
       aria-live="polite"
     >
-      {/* Empty state — advisor icon + label only, no decoration */}
+      {/* Empty state */}
       {messages.length === 0 && !isSending && (
         <div className="flex h-full flex-col items-center justify-center gap-2">
           <span
@@ -34,10 +35,10 @@ export default function MessageList({ messages, isSending, advisor }: MessageLis
           >
             <AdvisorIcon icon={advisor.iconLabel} className="h-6 w-6" />
           </span>
-          <p className="text-[13px] font-medium text-ink">
+          <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>
             {advisor.name}
           </p>
-          <p className="text-xs text-ink-muted">
+          <p className="text-[12px]" style={{ color: "var(--ink-muted)" }}>
             Select a conversation or start a new one.
           </p>
         </div>
@@ -67,12 +68,12 @@ function MessageBubble({ message }: { message: Message }) {
       onMouseEnter={() => setShowTime(true)}
       onMouseLeave={() => setShowTime(false)}
     >
-      {/* Avatar — small, initials only */}
+      {/* Avatar */}
       <div
         className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-[10px] font-semibold"
         style={
           isUser
-            ? { backgroundColor: "#1e2130", color: "#6b7280" }
+            ? { backgroundColor: "var(--bg-hover)", color: "var(--ink-muted)" }
             : { backgroundColor: "var(--accent-dim)", color: "var(--accent)" }
         }
         aria-hidden="true"
@@ -81,22 +82,22 @@ function MessageBubble({ message }: { message: Message }) {
       </div>
 
       <div className={`flex max-w-[72%] flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
-        {/* Bubble — max radius 8px per spec */}
+        {/* Bubble */}
         <div
           className="rounded-md px-3.5 py-2.5 text-[14px] leading-relaxed"
           style={
             isUser
-              ? { backgroundColor: "var(--accent)", color: "#fff" }
-              : { backgroundColor: "#13151f", color: "#e2e4ef", border: "1px solid #1e2130" }
+              ? { backgroundColor: "var(--bubble-user-bg)", color: "var(--bubble-user-text)" }
+              : { backgroundColor: "var(--bubble-ai-bg)", color: "var(--bubble-ai-text)", border: "1px solid var(--bubble-ai-border)" }
           }
         >
           <p className="whitespace-pre-wrap">{message.content}</p>
         </div>
 
-        {/* Timestamp — hover only, no layout shift */}
+        {/* Timestamp — hover only */}
         <p
-          className="text-2xs text-ink-muted transition-opacity"
-          style={{ opacity: showTime ? 1 : 0 }}
+          className="text-[11px] transition-opacity"
+          style={{ opacity: showTime ? 1 : 0, color: "var(--ink-muted)" }}
           aria-hidden={!showTime}
         >
           {formatTime(message.createdAt)}
@@ -120,14 +121,14 @@ function ThinkingIndicator({ advisorName }: { advisorName: string }) {
       </div>
       <div
         className="rounded-md px-3.5 py-3"
-        style={{ backgroundColor: "#13151f", border: "1px solid #1e2130" }}
+        style={{ backgroundColor: "var(--bubble-ai-bg)", border: "1px solid var(--bubble-ai-border)" }}
         aria-label={`${advisorName} is thinking`}
         role="status"
       >
         <div className="flex items-center gap-1" aria-hidden="true">
-          <span className="h-1.5 w-1.5 rounded-full bg-ink-muted animate-bounce [animation-delay:0ms]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-ink-muted animate-bounce [animation-delay:150ms]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-ink-muted animate-bounce [animation-delay:300ms]" />
+          <span className="h-1.5 w-1.5 rounded-full animate-bounce [animation-delay:0ms]"   style={{ backgroundColor: "var(--ink-muted)" }} />
+          <span className="h-1.5 w-1.5 rounded-full animate-bounce [animation-delay:150ms]" style={{ backgroundColor: "var(--ink-muted)" }} />
+          <span className="h-1.5 w-1.5 rounded-full animate-bounce [animation-delay:300ms]" style={{ backgroundColor: "var(--ink-muted)" }} />
         </div>
       </div>
     </div>

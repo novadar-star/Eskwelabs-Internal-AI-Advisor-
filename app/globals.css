@@ -2,39 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Accent (teal) + Light mode surfaces (default) ─────────────────── */
 :root {
-  --accent:       #1B6B5A;
-  --accent-hover: #155748;
-  --accent-dim:   #0f3d31;
+  --accent:            #1B6B5A;
+  --accent-hover:      #155748;
+  --accent-dim:        #0f3d31;
 
-  /* Per-advisor indicator colors */
   --advisor-dashboard: #3b6ea5;
   --advisor-ssot:      #7c5c9e;
   --advisor-modeling:  #4a8c6a;
+
+  --bg-base:    #f8f9fb;
+  --bg-raised:  #ffffff;
+  --bg-hover:   #f1f3f6;
+  --border:     #e2e5eb;
+
+  --ink:        #111827;
+  --ink-muted:  #6b7280;
+  --ink-faint:  #9ca3af;
+
+  /* Message bubbles */
+  --bubble-user-bg:   var(--accent);
+  --bubble-user-text: #ffffff;
+  --bubble-ai-bg:     #ffffff;
+  --bubble-ai-text:   #111827;
+  --bubble-ai-border: #e2e5eb;
+
+  /* Input */
+  --input-bg:     #ffffff;
+  --input-border: #e2e5eb;
 }
 
+/* ─── Dark mode overrides ────────────────────────────────────────────── */
+.dark {
+  --bg-base:    #0d0f1a;
+  --bg-raised:  #13151f;
+  --bg-hover:   #1a1d2e;
+  --border:     #1e2130;
+
+  --ink:        #e2e4ef;
+  --ink-muted:  #6b7280;
+  --ink-faint:  #374151;
+
+  --bubble-user-bg:   var(--accent);
+  --bubble-user-text: #ffffff;
+  --bubble-ai-bg:     #13151f;
+  --bubble-ai-text:   #e2e4ef;
+  --bubble-ai-border: #1e2130;
+
+  --input-bg:     #13151f;
+  --input-border: #1e2130;
+}
+
+/* ─── Base styles ────────────────────────────────────────────────────── */
 @layer base {
-  /* Dark-first: the app always runs in dark mode as default */
   html {
-    background-color: #0d0f1a;
-    color: #e2e4ef;
+    background-color: var(--bg-base);
+    color: var(--ink);
   }
 
-  * {
-    /* Global 150ms transitions on color/bg — no bounce */
-    transition-timing-function: ease;
-    transition-duration: 150ms;
+  body {
+    background-color: var(--bg-base);
+    color: var(--ink);
   }
 
-  /* Scrollbar — subtle, matches surface */
+  /* Scrollbar */
   ::-webkit-scrollbar       { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #1e2130; border-radius: 9999px; }
-  ::-webkit-scrollbar-thumb:hover { background: #2a2e40; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--bg-hover); }
 
-  /* Focus ring — teal, 1px, offset 2px, no glow */
+  /* Focus ring */
   :focus-visible {
     outline: 1px solid var(--accent);
     outline-offset: 2px;
   }
+}
+
+/* ─── Tailwind surface utilities ─────────────────────────────────────── */
+@layer utilities {
+  .bg-base        { background-color: var(--bg-base); }
+  .bg-raised      { background-color: var(--bg-raised); }
+  .bg-hover-state { background-color: var(--bg-hover); }
+  .border-theme   { border-color: var(--border); }
+  .text-primary   { color: var(--ink); }
+  .text-secondary { color: var(--ink-muted); }
+  .text-tertiary  { color: var(--ink-faint); }
 }
