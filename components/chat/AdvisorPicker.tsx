@@ -3,20 +3,12 @@
 /**
  * components/chat/AdvisorPicker.tsx
  *
- * Advisor selection screen — shown when no advisor is currently selected.
- *
- * Renders a grid of advisor cards. Clicking a card calls `onSelectAdvisor`
- * which updates state in ChatShell and switches to the ChatView.
- *
- * PROPS:
- * - advisors          full list of available advisors (from lib/advisors.ts)
- * - onSelectAdvisor   callback to ChatShell when a card is clicked
- *
- * TODO: In future, this screen can also show a "Resume recent conversation"
- * shortcut for each advisor if the user has past conversations.
+ * Advisor selection screen shown when no advisor is active.
+ * Clean card grid with monochrome SVG icons and accent left border.
  */
 
 import type { Advisor, AdvisorId } from "@/lib/chat-types";
+import AdvisorIcon from "@/components/AdvisorIcon";
 
 interface AdvisorPickerProps {
   advisors: Advisor[];
@@ -31,11 +23,11 @@ export default function AdvisorPicker({
     <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-8">
       {/* Heading */}
       <div className="mb-8 text-center">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-          Choose an Advisor
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          Select an Advisor
         </h2>
-        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          Select the advisor that best matches what you need help with today.
+        <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+          Choose the advisor that best fits what you need help with today.
         </p>
       </div>
 
@@ -64,43 +56,51 @@ function AdvisorCard({ advisor, onClick }: AdvisorCardProps) {
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-start rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600 dark:focus-visible:ring-gray-600"
+      className="group relative flex flex-col items-start overflow-hidden rounded-xl border border-gray-200 bg-white p-5 text-left transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600"
       aria-label={`Start chat with ${advisor.name}`}
     >
-      {/* Icon / avatar */}
+      {/* Left accent border */}
+      <span
+        className="absolute left-0 top-0 h-full w-1 rounded-l-xl bg-accent opacity-80"
+        aria-hidden="true"
+      />
+
+      {/* Icon */}
       <div
-        className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl border text-2xl ${advisor.accentColor}`}
+        className="mb-4 ml-2 flex h-10 w-10 items-center justify-center rounded-lg bg-accent-light text-accent"
         aria-hidden="true"
       >
-        {advisor.iconLabel}
+        <AdvisorIcon icon={advisor.iconLabel} className="h-5 w-5" />
       </div>
 
       {/* Advisor name */}
-      <h3 className="text-sm font-semibold text-gray-900 group-hover:text-gray-700 dark:text-gray-100 dark:group-hover:text-gray-300">
+      <h3 className="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
         {advisor.name}
       </h3>
 
-      {/* Description */}
-      <p className="mt-1.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+      {/* Description — max 2 lines via line-clamp */}
+      <p className="ml-2 mt-1.5 line-clamp-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
         {advisor.description}
       </p>
 
-      {/* CTA indicator */}
-      <div className="mt-4 flex items-center gap-1 text-xs font-medium text-gray-400 group-hover:text-gray-600 transition-colors dark:text-gray-500 dark:group-hover:text-gray-300">
-        <span>Start chat</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          className="h-3.5 w-3.5 translate-x-0 transition-transform group-hover:translate-x-0.5"
-          aria-hidden="true"
-        >
-          <path
-            fillRule="evenodd"
-            d="M2 8a.75.75 0 0 1 .75-.75h8.69L8.22 4.03a.75.75 0 0 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 0 1-1.06-1.06l3.22-3.22H2.75A.75.75 0 0 1 2 8Z"
-            clipRule="evenodd"
-          />
-        </svg>
+      {/* CTA button */}
+      <div className="ml-2 mt-4">
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors group-hover:bg-accent-hover">
+          Start chat
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            className="h-3 w-3 transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          >
+            <path
+              fillRule="evenodd"
+              d="M2 8a.75.75 0 0 1 .75-.75h8.69L8.22 4.03a.75.75 0 0 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 0 1-1.06-1.06l3.22-3.22H2.75A.75.75 0 0 1 2 8Z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </span>
       </div>
     </button>
   );

@@ -9,13 +9,17 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      // Add Eskwelabs brand colors and typography here
       colors: {
-        brand: {
-          primary: "#1a1a2e",   // placeholder — update to Eskwelabs brand color
-          secondary: "#16213e", // placeholder
-          accent: "#0f3460",    // placeholder
+        // Deep teal accent — primary brand color
+        accent: {
+          DEFAULT: "#1B6B5A",
+          hover: "#155748",
+          light: "#e8f4f1",
+          muted: "#4a9585",
         },
+      },
+      fontFamily: {
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       },
     },
   },

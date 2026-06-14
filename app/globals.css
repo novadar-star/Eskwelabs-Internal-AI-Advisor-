@@ -4,7 +4,8 @@
  * Global stylesheet loaded by the root layout.
  * Tailwind's three directive layers are required — do not remove them.
  *
- * Add global base styles and CSS variables below the Tailwind directives.
+ * Accent color is defined in tailwind.config.ts as `accent`.
+ * Use: bg-accent, text-accent, border-accent, bg-accent-light, hover:bg-accent-hover
  */
 
 @tailwind base;
@@ -12,8 +13,8 @@
 @tailwind utilities;
 
 :root {
-  /* Placeholder brand tokens — replace with Eskwelabs design tokens */
-  --color-brand-primary: #1a1a2e;
-  --color-brand-secondary: #16213e;
-  --color-brand-accent: #0f3460;
+  /* Kept as CSS vars for inline style="" usage (e.g. style={{ backgroundColor: "var(--accent)" }}) */
+  --accent:       #1B6B5A;
+  --accent-hover: #155748;
+  --accent-light: #e8f4f1;
 }

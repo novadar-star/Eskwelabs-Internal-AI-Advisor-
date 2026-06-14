@@ -4,24 +4,13 @@
  * components/chat/MessageList.tsx
  *
  * Scrollable message history area.
- *
- * LAYOUT RULES:
- * - User messages: aligned right, gray background
- * - Assistant messages: aligned left, white background with a subtle border
- * - A "thinking" indicator (animated dots) is shown while isSending is true
- *
- * AUTO-SCROLL:
- * useEffect watches `messages.length` and `isSending` and scrolls the
- * container to the bottom whenever a new message arrives or sending begins.
- * This mirrors the behaviour of ChatGPT, Claude, etc.
- *
- * TODO: When streaming is implemented, scroll incrementally as tokens arrive
- * rather than only on message completion. The ref approach here supports that —
- * just call scrollToBottom() from the streaming token handler.
+ * Redesigned: accent-colored user bubbles, AI avatar circle, hover timestamps,
+ * clean empty state with advisor SVG icon.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Advisor, Message } from "@/lib/chat-types";
+import AdvisorIcon from "@/components/AdvisorIcon";
 
 interface MessageListProps {
   messages: Message[];
@@ -36,7 +25,6 @@ export default function MessageList({
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom whenever messages change or sending state changes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, isSending]);
@@ -52,31 +40,29 @@ export default function MessageList({
       {messages.length === 0 && !isSending && (
         <div className="flex h-full flex-col items-center justify-center text-center">
           <div
-            className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border text-3xl ${advisor.accentColor}`}
+            className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-light text-accent"
             aria-hidden="true"
           >
-            {advisor.iconLabel}
+            <AdvisorIcon icon={advisor.iconLabel} className="h-7 w-7" />
           </div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Chat with {advisor.name}
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+            {advisor.name}
           </p>
           <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            Type a message below to get started.
+            Select a conversation or start a new one.
           </p>
         </div>
       )}
 
       {/* Message list */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
 
-        {/* Thinking indicator — shown while waiting for AI response */}
         {isSending && <ThinkingIndicator advisorName={advisor.shortName} />}
       </div>
 
-      {/* Invisible element at the bottom — scroll target */}
       <div ref={bottomRef} aria-hidden="true" />
     </div>
   );
@@ -90,41 +76,51 @@ interface MessageBubbleProps {
 
 function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  const [showTime, setShowTime] = useState(false);
 
   return (
     <div
-      className={`flex items-end gap-2 ${isUser ? "flex-row-reverse" : "flex-row"}`}
+      className={`flex items-end gap-2.5 ${isUser ? "flex-row-reverse" : "flex-row"}`}
+      onMouseEnter={() => setShowTime(true)}
+      onMouseLeave={() => setShowTime(false)}
     >
       {/* Avatar */}
-      <div
-        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-          isUser
-            ? "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-            : "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
-        }`}
-        aria-hidden="true"
-      >
-        {isUser ? "You" : "AI"}
-      </div>
+      {isUser ? (
+        /* User avatar — initials circle */
+        <div
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+          aria-hidden="true"
+        >
+          You
+        </div>
+      ) : (
+        /* AI avatar — accent circle */
+        <div
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-white"
+          aria-hidden="true"
+        >
+          AI
+        </div>
+      )}
 
-      {/* Bubble */}
-      <div
-        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-          isUser
-            ? "rounded-br-sm bg-gray-800 text-white dark:bg-gray-700"
-            : "rounded-bl-sm border border-gray-200 bg-white text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-        }`}
-      >
-        {/* TODO: When streaming, render tokens here as they arrive.
-            For Markdown support, replace this <p> with a Markdown renderer
-            (e.g., react-markdown) once AI responses are connected. */}
-        <p className="whitespace-pre-wrap">{message.content}</p>
-
-        {/* Timestamp */}
-        <p
-          className={`mt-1 text-right text-[10px] ${
-            isUser ? "text-gray-400" : "text-gray-400"
+      <div className={`flex max-w-[75%] flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
+        {/* Bubble */}
+        <div
+          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+            isUser
+              ? "rounded-br-sm bg-accent text-white"
+              : "rounded-bl-sm border border-gray-200 bg-[#F5F5F5] text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           }`}
+        >
+          <p className="whitespace-pre-wrap">{message.content}</p>
+        </div>
+
+        {/* Timestamp — visible on hover only */}
+        <p
+          className={`text-[10px] text-gray-400 transition-opacity duration-150 dark:text-gray-500 ${
+            showTime ? "opacity-100" : "opacity-0"
+          }`}
+          aria-hidden={!showTime}
         >
           {formatTime(message.createdAt)}
         </p>
@@ -137,18 +133,15 @@ function MessageBubble({ message }: MessageBubbleProps) {
 
 function ThinkingIndicator({ advisorName }: { advisorName: string }) {
   return (
-    <div className="flex items-end gap-2">
-      {/* Avatar */}
+    <div className="flex items-end gap-2.5">
       <div
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
+        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-white"
         aria-hidden="true"
       >
         AI
       </div>
-
-      {/* Animated dots bubble */}
       <div
-        className="rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800"
+        className="rounded-2xl rounded-bl-sm border border-gray-200 bg-[#F5F5F5] px-4 py-3 dark:border-gray-700 dark:bg-gray-800"
         aria-label={`${advisorName} is thinking`}
         role="status"
       >
