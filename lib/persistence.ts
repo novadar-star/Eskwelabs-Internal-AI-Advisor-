@@ -54,6 +54,7 @@
  */
 
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { estimateCost } from "@/lib/cost-guard";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -256,7 +257,7 @@ export async function persistTurn(
           completion_tokens: completionTokens,
           est_cost_usd:
             promptTokens !== null && completionTokens !== null
-              ? ((promptTokens * 0.0001 + completionTokens * 0.0004) / 1000)
+              ? estimateCost(promptTokens, completionTokens, model)
               : null,
           latency_ms: latencyMs,
           status,

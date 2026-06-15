@@ -164,11 +164,11 @@ export type BlockReason =
  * Only returns { allowed: true } when ALL checks pass.
  *
  * @param userId    Supabase UUID of the authenticated user
- * @param model     The model string (used for rate lookup in budget checks)
  */
 export async function checkCostGuard(
   userId: string,
-  model: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _model: string = ""
 ): Promise<GuardResult> {
   const supabase = getSupabaseAdmin();
   const todayPH = getTodayPH();

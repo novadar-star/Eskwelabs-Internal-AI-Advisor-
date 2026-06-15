@@ -159,10 +159,10 @@ export async function POST(request: NextRequest) {
   // and per-minute rate limit. Hard blocks if ANY check fails.
 
   // We need the model to estimate costs in budget checks, but we haven't
-  // looked it up yet. Use a lightweight pre-check with an empty model string
-  // (budget checks don't need the model; rate/message/token checks don't either).
-  // We'll re-use the full model for the post-call usage update below.
-  const guardResult = await checkCostGuard(userId, advisorId);
+  // looked it up yet. Budget/rate/message/token checks don't need the model —
+  // they read accumulated counters from the DB. The model is only used for
+  // the post-call usage update below.
+  const guardResult = await checkCostGuard(userId, "");
 
   if (!guardResult.allowed) {
     // Log the blocked attempt to the messages table for audit
@@ -400,6 +400,9 @@ export async function POST(request: NextRequest) {
           promptDocRevision,
           dnaDigestVersion,
         });
+
+        // Capture the resolved conversation ID (new or existing)
+        persistedConversationId = result.conversationId;
 
         console.info(
           `[api/chat] Turn persisted — conv=${result.conversationId} latency=${latencyMs}ms`
