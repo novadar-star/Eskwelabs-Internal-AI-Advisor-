@@ -239,14 +239,19 @@ export async function POST(request: NextRequest) {
       }),
     });
   } catch (err) {
+    // Network-level failure reaching OpenRouter (DNS, timeout, etc.)
+    // Log the real error server-side; return a safe errorType to the client.
     console.error("[api/chat] Failed to reach OpenRouter:", err);
     return NextResponse.json(
-      { error: "Could not reach the AI provider. Please try again." },
+      { error: "Could not reach the AI provider. Please try again.", errorType: "provider_error" },
       { status: 503 }
     );
   }
 
   if (!openRouterResponse.ok) {
+    // Log the real provider error server-side only — never forward raw provider
+    // error messages to the client. They can contain internal details like model
+    // names, billing status, or quota specifics that should stay server-side.
     const errorText = await openRouterResponse.text().catch(() => "");
     console.error(
       `[api/chat] OpenRouter error ${openRouterResponse.status}:`,
@@ -254,19 +259,21 @@ export async function POST(request: NextRequest) {
     );
     const status = openRouterResponse.status;
     if (status === 401) {
+      // Config error — admin needs to fix the API key
       return NextResponse.json(
-        { error: "Invalid API key. Contact an administrator." },
+        { error: "The advisor is temporarily unavailable. Contact an administrator.", errorType: "provider_error" },
         { status: 500 }
       );
     }
     if (status === 429) {
+      // Provider rate limit (separate from our cost guard)
       return NextResponse.json(
-        { error: "Rate limit reached. Please wait a moment and try again." },
+        { error: "The AI provider is busy. Please wait a moment and try again.", errorType: "provider_error" },
         { status: 429 }
       );
     }
     return NextResponse.json(
-      { error: "The AI provider returned an error. Please try again." },
+      { error: "The AI provider returned an error. Please try again.", errorType: "provider_error" },
       { status: 502 }
     );
   }
