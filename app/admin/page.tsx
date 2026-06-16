@@ -40,6 +40,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import AdminDashboard from "@/app/admin/AdminDashboard";
+import { LIMITS } from "@/lib/cost-guard";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -115,6 +116,7 @@ export default async function AdminPage() {
       usageRows={usageRows}
       usageDate={todayPH}
       modelConfigs={modelConfigs}
+      limits={LIMITS}
     />
   );
 }
