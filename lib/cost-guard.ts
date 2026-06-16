@@ -55,6 +55,11 @@ export const LIMITS = {
   rate_limit_per_minute: 10,
 } as const;
 
+export const ROLE_LIMITS = {
+  eif: 20,
+  admin: LIMITS.max_messages_per_user_per_day, // 50
+} as const;
+
 // ─── Claude cost rates (USD per 1 000 tokens) ──────────────────────────────
 // Source: https://www.anthropic.com/pricing  (as of 2025)
 // These are used for cost estimation BEFORE the call (using estimated tokens)
@@ -128,6 +133,20 @@ export function getTodayPH(): string {
 }
 
 /**
+ * Returns the ISO 8601 string for midnight of the next Asia/Manila calendar day.
+ * Formatted as YYYY-MM-DDT00:00:00+08:00
+ */
+export function getNextResetPH(): string {
+  const todayPH = getTodayPH(); // "YYYY-MM-DD"
+  const [year, month, day] = todayPH.split("-").map(Number);
+  
+  // Create a UTC date representing tomorrow in Manila's timezone
+  const tomorrow = new Date(Date.UTC(year, month - 1, day + 1));
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  return `${tomorrowStr}T00:00:00+08:00`;
+}
+
+/**
  * Returns the current year-month in Asia/Manila timezone as "YYYY-MM".
  * Used for monthly budget checks.
  */
@@ -174,6 +193,19 @@ export async function checkCostGuard(
   const todayPH = getTodayPH();
   const monthPH = getMonthPH();
 
+  // Fetch the user's role from the users table
+  const { data: userData, error: userErr } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  if (userErr) {
+    console.error("[cost-guard] Failed to fetch user role:", userErr.message);
+  }
+  const role = userData?.role ?? "eif";
+  const userLimit = ROLE_LIMITS[role as keyof typeof ROLE_LIMITS] ?? ROLE_LIMITS.eif;
+
   // ── Check 1: Per-minute rate limit ───────────────────────────────────────
   // Count how many requests this user has made in the last 60 seconds.
   // We use the rate_limit_log table with a created_at timestamp.
@@ -210,11 +242,11 @@ export async function checkCostGuard(
   const messagesToday = userCounters?.messages_today ?? 0;
   const tokensTodayUser = userCounters?.tokens_today ?? 0;
 
-  if (messagesToday >= LIMITS.max_messages_per_user_per_day) {
+  if (messagesToday >= userLimit) {
     return {
       allowed: false,
       reason: "daily_message_limit",
-      message: `You've reached your daily message limit of ${LIMITS.max_messages_per_user_per_day} messages. Your limit resets at midnight Manila time (Asia/Manila).`,
+      message: `You've reached your daily message limit of ${userLimit} messages. Your limit resets at midnight Manila time (Asia/Manila).`,
     };
   }
 
