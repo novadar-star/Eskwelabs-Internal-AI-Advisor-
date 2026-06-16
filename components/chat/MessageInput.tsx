@@ -2,15 +2,33 @@
 
 import { useRef, useCallback } from "react";
 
+interface UsageStats {
+  dailyLimit: number;
+  usedToday: number;
+  remaining: number;
+  percentageUsed: number;
+  resetAt: string;
+}
+
 interface MessageInputProps {
   value: string;
   isSending: boolean;
   advisorName: string;
   onChange: (value: string) => void;
   onSend: (content: string) => void;
+  isLimitReached: boolean;
+  usage: UsageStats | null;
 }
 
-export default function MessageInput({ value, isSending, advisorName, onChange, onSend }: MessageInputProps) {
+export default function MessageInput({
+  value,
+  isSending,
+  advisorName,
+  onChange,
+  onSend,
+  isLimitReached,
+  usage,
+}: MessageInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = useCallback(() => {
@@ -37,7 +55,22 @@ export default function MessageInput({ value, isSending, advisorName, onChange, 
     [onChange]
   );
 
-  const canSend = value.trim().length > 0 && !isSending;
+  const canSend = value.trim().length > 0 && !isSending && !isLimitReached;
+
+  const getMobileText = () => {
+    if (!usage) return "Loading remaining messages...";
+    const { remaining, percentageUsed, resetAt } = usage;
+    if (percentageUsed >= 100 || remaining <= 0) {
+      const now = new Date();
+      const reset = new Date(resetAt);
+      const diffMs = reset.getTime() - now.getTime();
+      if (diffMs <= 0) return "Daily limit reached. Resets shortly.";
+      const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      return `Daily limit reached. Resets in ${diffHrs}h ${diffMins}m`;
+    }
+    return `${remaining} message${remaining === 1 ? "" : "s"} remaining today`;
+  };
 
   return (
     <div
@@ -51,8 +84,8 @@ export default function MessageInput({ value, isSending, advisorName, onChange, 
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={`Message ${advisorName}…`}
-          disabled={isSending}
+          placeholder={isLimitReached ? "Daily limit reached. Resets at midnight." : `Message ${advisorName}…`}
+          disabled={isSending || isLimitReached}
           rows={1}
           aria-label="Message input"
           className="flex-1 resize-none rounded-md px-3.5 py-2.5 text-[14px] text-ink placeholder-ink-muted disabled:cursor-not-allowed disabled:opacity-50"
@@ -91,6 +124,13 @@ export default function MessageInput({ value, isSending, advisorName, onChange, 
           )}
         </button>
       </div>
+
+      {/* Mobile-only compact usage indicator */}
+      {usage && (
+        <div className="mt-2 block md:hidden text-2xs font-semibold text-ink-muted">
+          <span>💬 {getMobileText()}</span>
+        </div>
+      )}
 
       <p className="mt-1.5 text-2xs text-ink-muted" style={{ opacity: 0.5 }}>
         Enter to send · Shift+Enter for new line
