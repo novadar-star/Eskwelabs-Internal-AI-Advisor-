@@ -74,7 +74,7 @@ function MessageBubble({ message }: { message: Message }) {
         style={
           isUser
             ? { backgroundColor: "var(--bg-hover)", color: "var(--ink-muted)" }
-            : { backgroundColor: "var(--accent-dim)", color: "var(--accent)" }
+            : { backgroundColor: "var(--avatar-ai-bg)", color: "var(--avatar-ai-text)" }
         }
         aria-hidden="true"
       >
@@ -114,7 +114,7 @@ function ThinkingIndicator({ advisorName }: { advisorName: string }) {
     <div className="flex items-end gap-2">
       <div
         className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-[10px] font-semibold"
-        style={{ backgroundColor: "var(--accent-dim)", color: "var(--accent)" }}
+        style={{ backgroundColor: "var(--avatar-ai-bg)", color: "var(--avatar-ai-text)" }}
         aria-hidden="true"
       >
         AI
