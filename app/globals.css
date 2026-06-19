@@ -6,11 +6,12 @@
 :root {
   --accent:            #1B6B5A;
   --accent-hover:      #155748;
-  --accent-dim:        #0f3d31;
+  --accent-dim:        #e6f0ee; /* Light teal tint */
+  --accent-muted:      #4a9585;
 
-  --advisor-dashboard: #3b6ea5;
-  --advisor-ssot:      #7c5c9e;
-  --advisor-modeling:  #4a8c6a;
+  --advisor-dashboard: #2b5c92; /* Darker blue for light mode contrast */
+  --advisor-ssot:      #624285; /* Darker purple for light mode contrast */
+  --advisor-modeling:  #346a4d; /* Darker green for light mode contrast */
 
   --bg-base:    #f8f9fb;
   --bg-raised:  #ffffff;
@@ -18,8 +19,8 @@
   --border:     #e2e5eb;
 
   --ink:        #111827;
-  --ink-muted:  #6b7280;
-  --ink-faint:  #9ca3af;
+  --ink-muted:  #475569; /* Slate 600 (contrast 5.7:1) */
+  --ink-faint:  #64748b; /* Slate 500 (contrast 4.59:1) */
 
   /* Message bubbles */
   --bubble-user-bg:   var(--accent);
@@ -31,6 +32,10 @@
   /* Input */
   --input-bg:     #ffffff;
   --input-border: #e2e5eb;
+
+  /* Avatar & Badges */
+  --avatar-ai-bg:     var(--accent-dim);
+  --avatar-ai-text:   var(--accent);
 }
 
 /* ─── Dark mode overrides ────────────────────────────────────────────── */
@@ -41,8 +46,15 @@
   --border:     #1e2130;
 
   --ink:        #e2e4ef;
-  --ink-muted:  #6b7280;
-  --ink-faint:  #374151;
+  --ink-muted:  #94a3b8; /* Slate 400 (contrast 5.8:1) */
+  --ink-faint:  #4b5563; /* Slate 600 for dark mode placeholders */
+
+  --accent-dim:        #0f3d31; /* Dark teal tint */
+  --accent-muted:      #4a9585;
+
+  --advisor-dashboard: #3b6ea5; /* Pastel blue for dark mode contrast */
+  --advisor-ssot:      #7c5c9e; /* Pastel purple for dark mode contrast */
+  --advisor-modeling:  #4a8c6a; /* Pastel green for dark mode contrast */
 
   --bubble-user-bg:   var(--accent);
   --bubble-user-text: #ffffff;
@@ -52,6 +64,10 @@
 
   --input-bg:     #13151f;
   --input-border: #1e2130;
+
+  /* Avatar & Badges */
+  --avatar-ai-bg:     var(--accent-dim);
+  --avatar-ai-text:   #ffffff; /* White text on dark green bg */
 }
 
 /* ─── Base styles ────────────────────────────────────────────────────── */

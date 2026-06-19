@@ -119,6 +119,14 @@ async function fetchMessages(conversationId: string): Promise<Message[]> {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+interface UsageStats {
+  dailyLimit: number;
+  usedToday: number;
+  remaining: number;
+  percentageUsed: number;
+  resetAt: string;
+}
+
 export default function ChatShell({ userRole, consentGiven: initialConsentGiven }: ChatShellProps) {
   const [selectedAdvisorId, setSelectedAdvisorId]     = useState<AdvisorId | null>(null);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -128,10 +136,28 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
   const [isSending, setIsSending]                     = useState(false);
   const [isLoadingMessages, setIsLoadingMessages]     = useState(false);
 
+  // Daily chat limit usage statistics
+  const [usage, setUsage] = useState<UsageStats | null>(null);
+
   // FR-11: Show the consent modal until the user acknowledges it
   const [showConsent, setShowConsent] = useState(!initialConsentGiven);
 
-  useEffect(() => { fetchConversations().then(setConversations); }, []);
+  const fetchUsage = useCallback(async () => {
+    try {
+      const res = await fetch("/api/chat/usage");
+      if (res.ok) {
+        const data = await res.json() as UsageStats;
+        setUsage(data);
+      }
+    } catch (err) {
+      console.error("[ChatShell] Failed to fetch usage stats:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchConversations().then(setConversations);
+    fetchUsage();
+  }, [fetchUsage]);
 
   const refreshConversations = useCallback(async () => {
     setConversations(await fetchConversations());
@@ -159,12 +185,13 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
     setMessages([]);
     setInputValue("");
     setIsLoadingMessages(true);
+    fetchUsage();
     try {
       setMessages(await fetchMessages(conversation.id));
     } finally {
       setIsLoadingMessages(false);
     }
-  }, []);
+  }, [fetchUsage]);
 
   const handleNewChat = useCallback(() => {
     setSelectedAdvisorId(null);
@@ -253,6 +280,19 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
         return;
       }
 
+      // Optimistic usage counter increment upon successful API acceptance
+      setUsage((prev) => {
+        if (!prev) return prev;
+        const newUsed = prev.usedToday + 1;
+        const newRemaining = Math.max(0, prev.dailyLimit - newUsed);
+        return {
+          ...prev,
+          usedToday: newUsed,
+          remaining: newRemaining,
+          percentageUsed: Math.min(100, Math.round((newUsed / prev.dailyLimit) * 100)),
+        };
+      });
+
       // ── Stream response ────────────────────────────────────────────────
       const reader = response.body?.getReader();
       if (!reader) {
@@ -293,8 +333,94 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
       setAssistantError(ERROR_MESSAGES.generic);
     } finally {
       setIsSending(false);
+      fetchUsage();
     }
-  }, [selectedAdvisorId, isSending, messages, activeConversationId, refreshConversations]);
+  }, [selectedAdvisorId, isSending, messages, activeConversationId, refreshConversations, fetchUsage]);
+
+  const handleRenameConversation = useCallback(
+    async (id: string, newTitle: string): Promise<boolean> => {
+      const originalConversations = [...conversations];
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, title: newTitle, updatedAt: new Date() } : c
+        )
+      );
+
+      try {
+        const res = await fetch(`/api/conversations/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: newTitle }),
+        });
+
+        if (!res.ok) {
+          setConversations(originalConversations);
+          alert("Unable to rename conversation. Please try again.");
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error("[ChatShell] Failed to rename conversation:", err);
+        setConversations(originalConversations);
+        alert("Unable to rename conversation. Please try again.");
+        return false;
+      }
+    },
+    [conversations]
+  );
+
+  const handleDeleteConversation = useCallback(
+    async (id: string): Promise<boolean> => {
+      const originalConversations = [...conversations];
+      const originalActiveConversationId = activeConversationId;
+      const wasActive = id === activeConversationId;
+
+      if (wasActive) {
+        setActiveConversationId(null);
+        setMessages([]);
+        setInputValue("");
+      }
+
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+
+      try {
+        const res = await fetch(`/api/conversations/${id}`, {
+          method: "DELETE",
+        });
+
+        if (!res.ok) {
+          setConversations(originalConversations);
+          if (wasActive) {
+            setActiveConversationId(originalActiveConversationId);
+            setIsLoadingMessages(true);
+            try {
+              setMessages(await fetchMessages(originalActiveConversationId!));
+            } finally {
+              setIsLoadingMessages(false);
+            }
+          }
+          alert("Unable to delete conversation. Please try again.");
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error("[ChatShell] Failed to delete conversation:", err);
+        setConversations(originalConversations);
+        if (wasActive) {
+          setActiveConversationId(originalActiveConversationId);
+          setIsLoadingMessages(true);
+          try {
+            setMessages(await fetchMessages(originalActiveConversationId!));
+          } finally {
+            setIsLoadingMessages(false);
+          }
+        }
+        alert("Unable to delete conversation. Please try again.");
+        return false;
+      }
+    },
+    [conversations, activeConversationId]
+  );
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -353,7 +479,10 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
             activeConversationId={activeConversationId}
             onSelectConversation={handleSelectConversation}
             onNewChat={handleNewChat}
+            onRenameConversation={handleRenameConversation}
+            onDeleteConversation={handleDeleteConversation}
             advisors={ADVISORS}
+            usage={usage}
           />
 
           <main className="flex flex-1 flex-col overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
@@ -367,22 +496,15 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
                 onInputChange={setInputValue}
                 onSendMessage={handleSendMessage}
                 onBack={handleBackToPicker}
+                conversationId={activeConversationId}
+                isLimitReached={usage !== null && usage.remaining <= 0}
+                usage={usage}
               />
             ) : (
               <AdvisorPicker advisors={ADVISORS} onSelectAdvisor={handleSelectAdvisor} />
             )}
           </main>
         </div>
-
-        {/* ── Footer — FR-11 persistent monitoring notice ────────────── */}
-        <footer
-          className="flex-shrink-0 py-1.5 text-center"
-          style={{ borderTop: "1px solid var(--border)", backgroundColor: "var(--bg-base)" }}
-        >
-          <p className="text-[11px]" style={{ color: "var(--ink-faint)" }}>
-            Conversations are monitored · All messages are logged and may be reviewed by Eskwelabs administrators.
-          </p>
-        </footer>
       </div>
     </>
   );

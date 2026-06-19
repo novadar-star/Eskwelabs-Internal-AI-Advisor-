@@ -18,6 +18,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { SignJWT } from "jose";
 
 // ─── Browser / RLS-scoped client ───────────────────────────────────────────
 
@@ -58,6 +59,51 @@ export function getSupabaseAdmin() {
       // Disable auto-refreshing tokens for server-side admin client
       autoRefreshToken: false,
       persistSession: false,
+    },
+  });
+}
+
+/**
+ * User-scoped client — SERVER-SIDE ONLY.
+ * Creates an authenticated Supabase client for a specific user ID.
+ * Generates an HS256-signed JWT using the SUPABASE_JWT_SECRET, allowing
+ * database RLS to function naturally based on auth.uid().
+ */
+export async function getSupabaseUserClient(userId: string) {
+  if (typeof window !== "undefined") {
+    throw new Error(
+      "getSupabaseUserClient() must only be called from server-side code. " +
+        "Never import this in a client component."
+    );
+  }
+
+  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error(
+      "SUPABASE_JWT_SECRET is not set. Check your .env.local file."
+    );
+  }
+
+  const secret = new TextEncoder().encode(jwtSecret);
+  const token = await new SignJWT({
+    aud: "authenticated",
+    sub: userId,
+    role: "authenticated",
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(secret);
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
     },
   });
 }
