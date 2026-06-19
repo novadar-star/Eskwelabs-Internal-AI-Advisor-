@@ -37,23 +37,53 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 // ─── Limits config ─────────────────────────────────────────────────────────
+//
+// Hardcoded fallback values — used when the limits_config table is
+// unreachable or a key is missing. These match the seeded DB defaults.
+// Admins override these via the admin dashboard (limits_config table).
 
-export const LIMITS = {
-  /** Max messages a single user can send in one PH calendar day */
+export const LIMITS_FALLBACK = {
   max_messages_per_user_per_day: 50,
-
-  /** Max tokens (prompt + completion) a single user can consume in one PH day */
-  max_tokens_per_user_per_day: 100_000,
-
-  /** Max total spend across ALL users in one PH calendar day (USD) */
-  daily_budget_usd: 10.0,
-
-  /** Max total spend across ALL users in one calendar month (USD) */
-  monthly_budget_usd: 200.0,
-
-  /** Max requests a single user can make in any rolling 60-second window */
-  rate_limit_per_minute: 10,
+  max_tokens_per_user_per_day:   100_000,
+  daily_budget_usd:              10.0,
+  monthly_budget_usd:            200.0,
+  rate_limit_per_minute:         10,
 } as const;
+
+// Keep LIMITS exported for any code that still references it (display, etc.)
+// This is the fallback — live values come from getLimits() at call time.
+export const LIMITS = LIMITS_FALLBACK;
+
+export type LimitsConfig = typeof LIMITS_FALLBACK;
+
+/**
+ * Fetch live limits from the limits_config table.
+ * Falls back to LIMITS_FALLBACK if the DB is unreachable or a key is missing.
+ * Called once per cost-guard check — no in-process caching needed since
+ * limits_config changes are intentional admin actions (not per-request noise).
+ */
+async function getLimits(): Promise<LimitsConfig> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("limits_config")
+      .select("key, value");
+
+    if (error || !data?.length) return LIMITS_FALLBACK;
+
+    const map = Object.fromEntries(data.map((r) => [r.key, Number(r.value)]));
+
+    return {
+      max_messages_per_user_per_day: map["max_messages_per_user_per_day"] ?? LIMITS_FALLBACK.max_messages_per_user_per_day,
+      max_tokens_per_user_per_day:   map["max_tokens_per_user_per_day"]   ?? LIMITS_FALLBACK.max_tokens_per_user_per_day,
+      daily_budget_usd:              map["daily_budget_usd"]              ?? LIMITS_FALLBACK.daily_budget_usd,
+      monthly_budget_usd:            map["monthly_budget_usd"]            ?? LIMITS_FALLBACK.monthly_budget_usd,
+      rate_limit_per_minute:         map["rate_limit_per_minute"]         ?? LIMITS_FALLBACK.rate_limit_per_minute,
+    };
+  } catch {
+    return LIMITS_FALLBACK;
+  }
+}
 
 // ─── Claude cost rates (USD per 1 000 tokens) ──────────────────────────────
 // Source: https://www.anthropic.com/pricing  (as of 2025)
@@ -174,10 +204,10 @@ export async function checkCostGuard(
   const todayPH = getTodayPH();
   const monthPH = getMonthPH();
 
-  // ── Check 1: Per-minute rate limit ───────────────────────────────────────
-  // Count how many requests this user has made in the last 60 seconds.
-  // We use the rate_limit_log table with a created_at timestamp.
+  // Fetch live limits from DB (falls back to hardcoded defaults if unavailable)
+  const limits = await getLimits();
 
+  // ── Check 1: Per-minute rate limit ───────────────────────────────────────
   const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
 
   const { count: recentRequests, error: rateErr } = await supabase
@@ -187,19 +217,16 @@ export async function checkCostGuard(
     .gte("created_at", oneMinuteAgo);
 
   if (rateErr) {
-    // Log but don't block on DB errors — fail open for rate limiting only
     console.warn("[cost-guard] rate_limit_log query failed:", rateErr.message);
-  } else if ((recentRequests ?? 0) >= LIMITS.rate_limit_per_minute) {
+  } else if ((recentRequests ?? 0) >= limits.rate_limit_per_minute) {
     return {
       allowed: false,
       reason: "rate_limit",
-      message: `You're sending messages too quickly. You can send up to ${LIMITS.rate_limit_per_minute} messages per minute. Please wait a moment and try again.`,
+      message: `You're sending messages too quickly. You can send up to ${limits.rate_limit_per_minute} messages per minute. Please wait a moment and try again.`,
     };
   }
 
   // ── Check 2 & 3: Per-user daily message + token counts ───────────────────
-  // Fetch the user's usage_counters row for today (PH time).
-
   const { data: userCounters } = await supabase
     .from("usage_counters")
     .select("messages_today, tokens_today")
@@ -207,29 +234,26 @@ export async function checkCostGuard(
     .eq("day_ph", todayPH)
     .single();
 
-  const messagesToday = userCounters?.messages_today ?? 0;
-  const tokensTodayUser = userCounters?.tokens_today ?? 0;
+  const messagesToday   = userCounters?.messages_today ?? 0;
+  const tokensTodayUser = userCounters?.tokens_today   ?? 0;
 
-  if (messagesToday >= LIMITS.max_messages_per_user_per_day) {
+  if (messagesToday >= limits.max_messages_per_user_per_day) {
     return {
       allowed: false,
       reason: "daily_message_limit",
-      message: `You've reached your daily message limit of ${LIMITS.max_messages_per_user_per_day} messages. Your limit resets at midnight Manila time (Asia/Manila).`,
+      message: `You've reached your daily message limit of ${limits.max_messages_per_user_per_day} messages. Your limit resets at midnight Manila time (Asia/Manila).`,
     };
   }
 
-  if (tokensTodayUser >= LIMITS.max_tokens_per_user_per_day) {
-    const tokenLimit = LIMITS.max_tokens_per_user_per_day.toLocaleString();
+  if (tokensTodayUser >= limits.max_tokens_per_user_per_day) {
     return {
       allowed: false,
       reason: "daily_token_limit",
-      message: `You've reached your daily token limit of ${tokenLimit} tokens. Your limit resets at midnight Manila time (Asia/Manila).`,
+      message: `You've reached your daily token limit of ${limits.max_tokens_per_user_per_day.toLocaleString()} tokens. Your limit resets at midnight Manila time (Asia/Manila).`,
     };
   }
 
   // ── Check 4: Global daily budget ─────────────────────────────────────────
-  // Sum est_spend_today_usd across ALL users for today (PH).
-
   const { data: dailySpendRows } = await supabase
     .from("usage_counters")
     .select("est_spend_today_usd")
@@ -240,17 +264,15 @@ export async function checkCostGuard(
     0
   );
 
-  if (totalDailySpend >= LIMITS.daily_budget_usd) {
+  if (totalDailySpend >= limits.daily_budget_usd) {
     return {
       allowed: false,
       reason: "daily_budget_exceeded",
-      message: `The platform has reached its daily spending limit of $${LIMITS.daily_budget_usd.toFixed(2)} USD. The advisor service will be available again at midnight Manila time. Contact an admin if this is urgent.`,
+      message: `The platform has reached its daily spending limit of $${limits.daily_budget_usd.toFixed(2)} USD. The advisor service will be available again at midnight Manila time. Contact an admin if this is urgent.`,
     };
   }
 
   // ── Check 5: Global monthly budget ───────────────────────────────────────
-  // Sum all est_spend_today_usd for all days in the current PH month.
-
   const monthStart = `${monthPH}-01`;
   const { data: monthlySpendRows } = await supabase
     .from("usage_counters")
@@ -262,17 +284,15 @@ export async function checkCostGuard(
     0
   );
 
-  if (totalMonthlySpend >= LIMITS.monthly_budget_usd) {
+  if (totalMonthlySpend >= limits.monthly_budget_usd) {
     return {
       allowed: false,
       reason: "monthly_budget_exceeded",
-      message: `The platform has reached its monthly spending limit of $${LIMITS.monthly_budget_usd.toFixed(2)} USD. The advisor service will resume next month. Contact an admin for assistance.`,
+      message: `The platform has reached its monthly spending limit of $${limits.monthly_budget_usd.toFixed(2)} USD. The advisor service will resume next month. Contact an admin for assistance.`,
     };
   }
 
-  // ── All checks passed ─────────────────────────────────────────────────────
-
-  // Log this request for rate-limit tracking (fire-and-forget)
+  // ── All checks passed — log this request for rate-limit tracking ──────────
   supabase
     .from("rate_limit_log")
     .insert({ user_id: userId })

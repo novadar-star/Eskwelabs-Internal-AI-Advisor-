@@ -3,84 +3,41 @@
  *
  * Admin dashboard — Server Component.
  *
- * ═══════════════════════════════════════════════════════════════
- * HOW ROLE-BASED ACCESS CONTROL WORKS
- * ═══════════════════════════════════════════════════════════════
- * Access is enforced at THREE independent layers:
+ * Fetches and passes to AdminDashboard:
+ *   - Today's per-user usage (FR-09)
+ *   - Current month's aggregate spend (FR-09)
+ *   - Model config per advisor (FR-08)
+ *   - Limits config (FR-06 / FR-07)
  *
- * Layer 1 — Middleware (middleware.ts):
- *   Runs on the Edge before any page code executes. Checks the role
- *   from the JWT cookie. Non-admins are redirected to /chat immediately.
- *   This prevents the page from even rendering for non-admins.
- *
- * Layer 2 — Server Component check (this file):
- *   Even if middleware is somehow bypassed, this server component calls
- *   auth() and checks role === "admin" before rendering anything.
- *   Non-admins are redirected to /chat.
- *
- * Layer 3 — API route checks (every /api/admin/* route):
- *   Each API route independently verifies role === "admin" from the
- *   session. This protects against direct API calls that bypass both
- *   the middleware and the page entirely (e.g., curl, browser fetch).
- *
- * The role value is sourced from the Supabase users table during sign-in
- * (lib/auth.ts signIn callback) and stored in the encrypted JWT cookie.
- * It cannot be forged by the client.
- *
- * ═══════════════════════════════════════════════════════════════
- * DATA STRATEGY
- * ═══════════════════════════════════════════════════════════════
- * Usage data and model config are fetched server-side here and passed
- * to client components as initial props. Client components then handle
- * mutations (model config saves, cache refresh) via fetch() calls to
- * the API routes, which re-validate the admin role on every request.
+ * Access is enforced at three layers — see inline comments.
  */
 
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { LIMITS_FALLBACK } from "@/lib/cost-guard";
+import { LIMIT_META } from "@/app/api/admin/limits-config/route";
 import AdminDashboard from "@/app/admin/AdminDashboard";
+import type { UsageRow, ModelConfigRow, LimitRow, MonthlySpend } from "@/app/admin/types";
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-export interface UsageRow {
-  userId: string;
-  email: string;
-  messagesToday: number;
-  tokensToday: number;
-  estSpendTodayUsd: number;
-}
-
-export interface ModelConfigRow {
-  advisorId: string;
-  provider: string;
-  model: string;
-  updatedBy: string | null;
-  updatedAt: string | null;
-}
+// Re-export for any other imports that depend on page.tsx types
+export type { UsageRow, ModelConfigRow, LimitRow, MonthlySpend };
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default async function AdminPage() {
-  // ── Layer 2 auth check ────────────────────────────────────────────────
+  // ── Layer 2: server-side auth check ───────────────────────────────────
   const session = await auth();
-
-  if (!session?.user) {
-    redirect("/login");
-  }
-
-  if (session.user.role !== "admin") {
-    // EIF users who somehow reach this route get bounced to /chat
-    redirect("/chat");
-  }
+  if (!session?.user)                 redirect("/login");
+  if (session.user.role !== "admin")  redirect("/chat");
 
   const supabase = getSupabaseAdmin();
 
-  // ── Fetch usage data ──────────────────────────────────────────────────
-  const todayPH = new Date().toLocaleDateString("en-CA", {
-    timeZone: "Asia/Manila",
-  });
+  // ── Dates ─────────────────────────────────────────────────────────────
+  const todayPH = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const monthPH = todayPH.slice(0, 7); // "YYYY-MM"
 
+  // ── 1. Today's usage (FR-09) ──────────────────────────────────────────
   const { data: usageData } = await supabase
     .from("usage_counters")
     .select("user_id, messages_today, tokens_today, est_spend_today_usd, users(email)")
@@ -88,14 +45,26 @@ export default async function AdminPage() {
     .order("est_spend_today_usd", { ascending: false });
 
   const usageRows: UsageRow[] = (usageData ?? []).map((r) => ({
-    userId: r.user_id,
-    email: (r.users as unknown as { email: string } | null)?.email ?? "unknown",
-    messagesToday: r.messages_today,
-    tokensToday: r.tokens_today,
+    userId:           r.user_id,
+    email:            (r.users as unknown as { email: string } | null)?.email ?? "unknown",
+    messagesToday:    r.messages_today,
+    tokensToday:      r.tokens_today,
     estSpendTodayUsd: Number(r.est_spend_today_usd ?? 0),
   }));
 
-  // ── Fetch model config ────────────────────────────────────────────────
+  // ── 2. Monthly spend summary (FR-09) ──────────────────────────────────
+  const monthStart = `${monthPH}-01`;
+  const { data: monthData } = await supabase
+    .from("usage_counters")
+    .select("est_spend_today_usd")
+    .gte("day_ph", monthStart);
+
+  const monthlyTotalUsd = (monthData ?? []).reduce(
+    (sum, r) => sum + Number(r.est_spend_today_usd ?? 0),
+    0
+  );
+
+  // ── 3. Model config (FR-08) ───────────────────────────────────────────
   const { data: modelData } = await supabase
     .from("model_config")
     .select("advisor_id, provider, model, updated_by, updated_at")
@@ -103,11 +72,43 @@ export default async function AdminPage() {
 
   const modelConfigs: ModelConfigRow[] = (modelData ?? []).map((r) => ({
     advisorId: r.advisor_id,
-    provider: r.provider,
-    model: r.model,
+    provider:  r.provider,
+    model:     r.model,
     updatedBy: r.updated_by,
     updatedAt: r.updated_at,
   }));
+
+  // ── 4. Limits config (FR-06 / FR-07) ──────────────────────────────────
+  const { data: limitsData } = await supabase
+    .from("limits_config")
+    .select("key, value, updated_by, updated_at")
+    .order("key");
+
+  // Merge DB values with metadata (label, description, unit, step, min)
+  // Fall back to LIMITS_FALLBACK value if a key isn't in the DB yet.
+  const limitsRows: LimitRow[] = Object.entries(LIMIT_META).map(([key, meta]) => {
+    const row = (limitsData ?? []).find((r) => r.key === key);
+    return {
+      key,
+      value:      row ? Number(row.value) : LIMITS_FALLBACK[key as keyof typeof LIMITS_FALLBACK],
+      label:      meta.label,
+      description: meta.description,
+      unit:       meta.unit,
+      step:       meta.step,
+      min:        meta.min,
+      updatedBy:  row?.updated_by ?? null,
+      updatedAt:  row?.updated_at ?? null,
+    };
+  });
+
+  const monthlyBudget = limitsRows.find((r) => r.key === "monthly_budget_usd")?.value
+    ?? LIMITS_FALLBACK.monthly_budget_usd;
+
+  const monthlySpend: MonthlySpend = {
+    month:    monthPH,
+    totalUsd: monthlyTotalUsd,
+    budget:   monthlyBudget,
+  };
 
   return (
     <AdminDashboard
@@ -115,6 +116,8 @@ export default async function AdminPage() {
       usageRows={usageRows}
       usageDate={todayPH}
       modelConfigs={modelConfigs}
+      limitsRows={limitsRows}
+      monthlySpend={monthlySpend}
     />
   );
 }
