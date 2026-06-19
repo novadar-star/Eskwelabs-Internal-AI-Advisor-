@@ -10,31 +10,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Brand surfaces — dark-first palette
+        // Brand surfaces — dynamically theme-responsive
         surface: {
-          base:  "#0d0f1a", // main background
-          raised: "#13151f", // sidebar, cards
-          border: "#1e2130", // subtle borders
-          hover:  "#1a1d2e", // hover state on dark bg
+          base:   "var(--bg-base)",
+          raised: "var(--bg-raised)",
+          border: "var(--border)",
+          hover:  "var(--bg-hover)",
         },
         // Teal accent — used only on primary actions and active states
         accent: {
           DEFAULT: "#1B6B5A",
           hover:   "#155748",
-          dim:     "#0f3d31", // active bg on dark surfaces
-          muted:   "#4a9585",
+          dim:     "var(--accent-dim)",
+          muted:   "var(--accent-muted)",
         },
-        // Per-advisor indicator colors — distinct, muted
+        // Per-advisor indicator colors — dynamically theme-responsive
         advisor: {
-          dashboard: "#3b6ea5", // muted blue
-          ssot:      "#7c5c9e", // muted purple
-          modeling:  "#4a8c6a", // muted green (distinct from teal)
+          dashboard: "var(--advisor-dashboard)",
+          ssot:      "var(--advisor-ssot)",
+          modeling:  "var(--advisor-modeling)",
         },
-        // Text scale
+        // Text scale — dynamically theme-responsive
         ink: {
-          DEFAULT: "#e2e4ef", // primary text
-          muted:   "#6b7280", // secondary / meta
-          faint:   "#374151", // disabled / placeholder
+          DEFAULT: "var(--ink)",
+          muted:   "var(--ink-muted)",
+          faint:   "var(--ink-faint)",
         },
       },
       fontSize: {

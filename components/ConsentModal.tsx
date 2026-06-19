@@ -88,7 +88,7 @@ export default function ConsentModal({ onAcknowledge }: ConsentModalProps) {
           {/* Shield icon */}
           <span
             className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded"
-            style={{ backgroundColor: "var(--accent-dim)", color: "var(--accent)" }}
+            style={{ backgroundColor: "var(--avatar-ai-bg)", color: "var(--avatar-ai-text)" }}
             aria-hidden="true"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
