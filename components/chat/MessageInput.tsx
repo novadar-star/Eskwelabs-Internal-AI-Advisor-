@@ -33,10 +33,10 @@ export default function MessageInput({
 
   const handleSend = useCallback(() => {
     const trimmed = value.trim();
-    if (!trimmed || isSending) return;
+    if (!trimmed || isLimitReached) return;
     onSend(trimmed);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
-  }, [value, isSending, onSend]);
+  }, [value, isLimitReached, onSend]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -55,7 +55,7 @@ export default function MessageInput({
     [onChange]
   );
 
-  const canSend = value.trim().length > 0 && !isSending && !isLimitReached;
+  const canSend = value.trim().length > 0 && !isLimitReached;
 
   const getMobileText = () => {
     if (!usage) return "Loading remaining messages...";
@@ -85,7 +85,7 @@ export default function MessageInput({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder={isLimitReached ? "Daily limit reached. Resets at midnight." : `Message ${advisorName}…`}
-          disabled={isSending || isLimitReached}
+          disabled={isLimitReached}
           rows={1}
           aria-label="Message input"
           className="flex-1 resize-none rounded-md px-3.5 py-2.5 text-[14px] text-ink placeholder-ink-muted disabled:cursor-not-allowed disabled:opacity-50"

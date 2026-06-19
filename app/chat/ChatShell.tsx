@@ -205,7 +205,7 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
   // ── Send message with full FR-12 error handling ──────────────────────────
 
   const handleSendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || !selectedAdvisorId || isSending) return;
+    if (!content.trim() || !selectedAdvisorId) return;
     const trimmedContent = content.trim();
 
     const userMessage: Message = {
@@ -335,7 +335,7 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
       setIsSending(false);
       fetchUsage();
     }
-  }, [selectedAdvisorId, isSending, messages, activeConversationId, refreshConversations, fetchUsage]);
+  }, [selectedAdvisorId, messages, activeConversationId, refreshConversations, fetchUsage]);
 
   const handleRenameConversation = useCallback(
     async (id: string, newTitle: string): Promise<boolean> => {
