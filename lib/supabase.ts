@@ -22,14 +22,29 @@ import { SignJWT } from "jose";
 
 // ─── Browser / RLS-scoped client ───────────────────────────────────────────
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 /**
  * Public client — safe in client and server components.
  * All queries are subject to Supabase RLS policies.
+ * Lazily created to avoid build-time errors when env vars aren't available.
  */
-export const supabaseBrowser = createClient(supabaseUrl, supabaseAnonKey);
+let _browserClient: ReturnType<typeof createClient> | null = null;
+
+export function getSupabaseBrowser() {
+  if (!_browserClient) {
+    _browserClient = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return _browserClient;
+}
+
+// Keep the named export for backward compatibility (lazy-initialized via getter)
+export const supabaseBrowser = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_target, prop) {
+    return (getSupabaseBrowser() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
 
 // ─── Admin / service-role client ───────────────────────────────────────────
 

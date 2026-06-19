@@ -16,7 +16,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { LIMITS_FALLBACK } from "@/lib/cost-guard";
-import { LIMIT_META } from "@/app/api/admin/limits-config/route";
+import { LIMIT_META } from "@/lib/limits-meta";
 import AdminDashboard from "@/app/admin/AdminDashboard";
 import type { UsageRow, ModelConfigRow, LimitRow, MonthlySpend } from "@/app/admin/types";
 

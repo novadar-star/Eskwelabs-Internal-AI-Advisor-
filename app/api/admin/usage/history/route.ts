@@ -11,6 +11,8 @@ import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   // ── 1. Auth & Authorization Layer ───────────────────────────────────────
   const session = await auth();

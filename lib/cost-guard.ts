@@ -158,6 +158,35 @@ export function getTodayPH(): string {
 }
 
 /**
+ * Returns the next midnight in Asia/Manila timezone as an ISO string.
+ * Used by the usage endpoint to tell the client when limits reset.
+ */
+export function getNextResetPH(): string {
+  const now = new Date();
+  // Get today's date string in PH timezone
+  const todayStr = getTodayPH(); // "YYYY-MM-DD"
+  // Parse as a Date at midnight UTC, then offset to PH (UTC+8)
+  const [year, month, day] = todayStr.split("-").map(Number);
+  // Next midnight in PH = today + 1 day at 00:00 PH = 16:00 UTC previous day
+  const nextMidnightPH = new Date(Date.UTC(year, month - 1, day + 1, -8, 0, 0));
+  // If we've already passed this (shouldn't happen normally), add a day
+  if (nextMidnightPH <= now) {
+    nextMidnightPH.setUTCDate(nextMidnightPH.getUTCDate() + 1);
+  }
+  return nextMidnightPH.toISOString();
+}
+
+/**
+ * Per-role daily message limits.
+ * Used by the /api/chat/usage endpoint to tell users how many messages they have left.
+ * Admins get a higher limit.
+ */
+export const ROLE_LIMITS: Record<string, number> = {
+  eif:   LIMITS_FALLBACK.max_messages_per_user_per_day,
+  admin: LIMITS_FALLBACK.max_messages_per_user_per_day * 2, // admins get 2x
+};
+
+/**
  * Returns the current year-month in Asia/Manila timezone as "YYYY-MM".
  * Used for monthly budget checks.
  */

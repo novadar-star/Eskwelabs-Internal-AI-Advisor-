@@ -31,6 +31,8 @@ import {
 } from "@/lib/prompt-loader";
 import { getCacheStatus } from "@/lib/prompt-cache";
 
+export const dynamic = "force-dynamic";
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type RefreshScope =

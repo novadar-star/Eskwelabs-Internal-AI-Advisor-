@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Update README on Commit",
+  "description": "After the agent completes a task, automatically review the current project state and update the GitHub README.md to reflect any new changes, features, or modifications made.",
+  "version": "1",
+  "when": {
+    "type": "postToolUse",
+    "toolTypes": [
+      "shell"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "If the shell command that just ran was a git commit, review what was committed and update the readme.md file to reflect the latest changes to the project. Keep the README accurate and up-to-date with the current state of the codebase including features, setup instructions, and any relevant documentation. If the command was not a git commit, do nothing."
+  }
+}
