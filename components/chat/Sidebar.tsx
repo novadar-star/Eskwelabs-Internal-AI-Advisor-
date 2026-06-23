@@ -46,6 +46,11 @@ export default function Sidebar({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  // Filter conversations based on advisor selection
+  const filteredConversations = conversations.filter(
+    (conv) => advisorFilter === "all" || conv.advisorId === advisorFilter
+  );
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
@@ -186,6 +191,7 @@ export default function Sidebar({
                   id: result.conversation_id,
                   advisorId: result.advisor_id,
                   title: result.title,
+                  createdAt: new Date(result.created_at),
                   updatedAt: new Date(result.updated_at),
                 };
 
@@ -219,7 +225,7 @@ export default function Sidebar({
                           {advisor?.shortName || result.advisor_id}
                         </span>
                         <span className="text-2xs text-ink-muted">
-                          {formatRelativeDate(new Date(result.updated_at))}
+                          {formatRelativeDate(new Date(result.created_at))}
                         </span>
                       </div>
 
@@ -245,13 +251,13 @@ export default function Sidebar({
               })}
             </ul>
           )
-        ) : conversations.length === 0 ? (
+        ) : filteredConversations.length === 0 ? (
           <p className="px-3 py-8 text-center text-xs" style={{ color: "var(--ink-muted)" }}>
-            No conversations yet.
+            {conversations.length === 0 ? "No conversations yet." : "No conversations for this advisor."}
           </p>
         ) : (
           <ul className="space-y-px">
-            {conversations.map((conv) => {
+            {filteredConversations.map((conv) => {
               const isActive = conv.id === activeConversationId;
               const borderColor = ADVISOR_BORDER_COLOR[conv.advisorId] ?? "var(--accent)";
 
@@ -372,7 +378,7 @@ export default function Sidebar({
 
                         {/* Meta: relative date */}
                         <p className="mt-0.5 pl-2 text-2xs text-ink-muted">
-                          {formatRelativeDate(conv.updatedAt)}
+                          {formatRelativeDate(conv.createdAt)}
                         </p>
                       </button>
 
@@ -624,8 +630,14 @@ export default function Sidebar({
 
 function formatRelativeDate(date: Date): string {
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  // Set times to midnight to calculate difference in calendar days
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dateMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  
+  const diffTime = todayMidnight.getTime() - dateMidnight.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays}d ago`;

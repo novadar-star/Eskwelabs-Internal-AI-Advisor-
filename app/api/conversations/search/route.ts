@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // ── 3. Query Conversations by Title ──────────────────────────────────
     let conversationsQuery = supabase
       .from("conversations")
-      .select("id, title, advisor_id, updated_at")
+      .select("id, title, advisor_id, created_at, updated_at")
       .eq("user_id", userId)
       .ilike("title", `%${query}%`)
       .order("updated_at", { ascending: false })
@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
           id,
           title,
           advisor_id,
+          created_at,
           updated_at,
           user_id
         )
@@ -84,6 +85,7 @@ export async function GET(request: NextRequest) {
       title: string;
       advisor_id: string;
       matched_message_preview: string | null;
+      created_at: string;
       updated_at: string;
     }>();
 
@@ -95,6 +97,7 @@ export async function GET(request: NextRequest) {
           title: c.title,
           advisor_id: c.advisor_id,
           matched_message_preview: null,
+          created_at: c.created_at,
           updated_at: c.updated_at,
         });
       }
@@ -120,6 +123,7 @@ export async function GET(request: NextRequest) {
             title: conv.title,
             advisor_id: conv.advisor_id,
             matched_message_preview: preview,
+            created_at: conv.created_at,
             updated_at: conv.updated_at,
           });
         }
