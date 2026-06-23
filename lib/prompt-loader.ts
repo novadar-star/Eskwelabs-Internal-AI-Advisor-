@@ -126,7 +126,7 @@ async function fetchDocWithCache(
   docId: string
 ): Promise<{ text: string; revision: string }> {
   const cacheKey = `doc:${docId}`;
-  const cached = getCached(cacheKey);
+  const cached = await getCached(cacheKey);
 
   if (cached && isFresh(cached)) {
     // Cache hit — fresh
@@ -140,7 +140,7 @@ async function fetchDocWithCache(
   logEvent({ event: "prompt_cache_miss", metadata: { docId } });
   try {
     const { text, revision } = await fetchGoogleDoc(docId);
-    setCached(cacheKey, text, revision);
+    await setCached(cacheKey, text, revision);
     console.info(`[prompt-loader] Fetched doc ${docId} (revision ${revision})`);
     return { text, revision };
   } catch (err) {
@@ -169,7 +169,7 @@ async function fetchDocWithCache(
  */
 async function getDnaDigest(): Promise<string> {
   const digestKey = "dna_digest";
-  const cachedDigest = getCached(digestKey);
+  const cachedDigest = await getCached(digestKey);
 
   if (cachedDigest && isFresh(cachedDigest)) {
     return cachedDigest.value;
@@ -195,7 +195,7 @@ async function getDnaDigest(): Promise<string> {
   try {
     const digest = await callLLMForDigest(dnaText);
     const version = `digest-${Date.now()}`;
-    setCached(digestKey, digest, version);
+    await setCached(digestKey, digest, version);
     console.info(`[prompt-loader] dna_digest_regenerated (version ${version})`);
     logEvent({ event: "dna_digest_regenerated", metadata: { version } });
     return digest;
@@ -345,7 +345,7 @@ export async function getSystemPrompt(
     parts.push("## Advisor Instructions\n" + advisorResult.text);
 
     const digestKey = "dna_digest";
-    const digestEntry = getCached(digestKey);
+    const digestEntry = await getCached(digestKey);
 
     return {
       systemPrompt: parts.join("\n\n"),
@@ -357,7 +357,7 @@ export async function getSystemPrompt(
     // Distinguish between "first-ever fetch failed" (hard error — block LLM call)
     // and "has a fallback available" scenarios.
     const cacheKey = `doc:${docId}`;
-    const staleEntry = getCached(cacheKey);
+    const staleEntry = await getCached(cacheKey);
 
     if (!staleEntry) {
       // No cache at all — this is a hard failure. Signal to the caller
@@ -396,22 +396,22 @@ export async function getSystemPrompt(
  * Invalidate a specific advisor's prompt cache entry.
  * The next LLM call for this advisor will fetch a fresh copy from Google Docs.
  */
-export function invalidateAdvisorCache(advisorId: string): void {
+export async function invalidateAdvisorCache(advisorId: string): Promise<void> {
   const docId = ADVISOR_DOC_IDS[advisorId];
-  if (docId) invalidate(`doc:${docId}`);
+  if (docId) await invalidate(`doc:${docId}`);
 }
 
 /**
  * Invalidate only the DNA Digest cache (not the raw DNA doc).
  * Forces regeneration of the digest on next request.
  */
-export function invalidateDnaDigestCache(): void {
-  invalidate("dna_digest");
+export async function invalidateDnaDigestCache(): Promise<void> {
+  await invalidate("dna_digest");
 }
 
 /**
  * Invalidate everything — all advisor prompts + DNA digest.
  */
-export function invalidateAllCaches(): void {
-  invalidateAll();
+export async function invalidateAllCaches(): Promise<void> {
+  await invalidateAll();
 }

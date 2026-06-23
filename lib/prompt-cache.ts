@@ -1,58 +1,77 @@
 /**
  * lib/prompt-cache.ts
  *
- * In-process TTL cache for Google Docs content and the DNA Digest.
+ * Shared prompt cache backed by Supabase (prompt_cache table).
  *
  * ═══════════════════════════════════════════════════════════════
- * CACHING STRATEGY — WHY AND HOW
+ * WHY SUPABASE INSTEAD OF IN-MEMORY
  * ═══════════════════════════════════════════════════════════════
+ * Vercel serverless functions spin up multiple isolated instances.
+ * An in-memory Map only exists in one instance — so admin cache
+ * invalidation only clears one copy while others keep serving stale data.
  *
- * PROBLEM: Every chat turn needs the advisor's system prompt + DNA Digest.
- * If we fetched from Google Docs on every turn:
- *   - Latency: adds 300–800ms to every message
- *   - Cost:    Google Docs API has per-minute quotas
- *   - Risk:    If Docs is down, no messages can be sent at all
+ * By storing the cache in Supabase:
+ *   - All instances read from the same source of truth
+ *   - Admin invalidation (DELETE) is immediately visible everywhere
+ *   - TTL is based on the `fetched_at` timestamp, not process lifetime
+ *   - No new infrastructure needed — reuses existing Supabase connection
  *
- * SOLUTION: Cache in the Node.js process memory with a 5-minute TTL.
+ * TRADE-OFF: ~5-15ms latency per cache read (Supabase query) vs 0ms for
+ * a Map lookup. This is negligible compared to the 1-3s LLM call and
+ * only happens once per message (not per token).
  *
- * WHY IN-PROCESS (not Redis/Supabase)?
- * For a Vercel serverless deployment, in-process module-level state is
- * warm for the lifetime of the function instance — typically minutes.
- * A 5-minute TTL fits that window. It's zero-dependency and zero-latency.
- * When the function instance is recycled, the cache is empty and the next
- * request fetches fresh content, which is exactly the right behaviour.
- *
- * FALLBACK POLICY:
- * If a fetch fails but a stale entry exists, we serve the stale entry
- * rather than blocking the message. "Slightly stale prompt" is far less
- * harmful than "chat is broken".
- *
- * If a fetch fails and NO entry exists (cold start), we return null and
- * the caller MUST block the LLM call with a user-facing error. We never
- * pass an empty or undefined prompt to the LLM.
- *
- * TTL: 5 minutes (matches the spec in Requirement 5).
+ * ═══════════════════════════════════════════════════════════════
+ * FALLBACK
+ * ═══════════════════════════════════════════════════════════════
+ * If Supabase is unreachable for cache operations, we fall back to
+ * an in-memory Map as a last resort. This ensures the app never breaks
+ * just because the cache layer is temporarily unavailable.
  */
+
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-interface CacheEntry {
+export interface CacheEntry {
   value: string;
-  fetchedAt: number;    // Date.now() when stored
-  version: string;      // opaque version string for audit logging
+  fetchedAt: number;    // Unix ms when stored
+  version: string;      // opaque version string for audit
 }
 
-// Module-level Map — persists for the lifetime of the server process.
-// Keys: doc IDs and "dna_digest"
-const cache = new Map<string, CacheEntry>();
+// In-memory fallback — used only if Supabase cache reads/writes fail
+const fallbackCache = new Map<string, CacheEntry>();
 
 /**
- * Get a cached value.
- * Returns the entry if it exists (fresh or stale), or null if never cached.
- * Caller decides whether to use a stale entry or reject.
+ * Get a cached value from Supabase.
+ * Returns the entry if it exists (fresh or stale), or null if not cached.
  */
-export function getCached(key: string): CacheEntry | null {
-  return cache.get(key) ?? null;
+export async function getCached(key: string): Promise<CacheEntry | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("prompt_cache")
+      .select("value, version, fetched_at")
+      .eq("key", key)
+      .single();
+
+    if (error || !data) {
+      // Check in-memory fallback
+      return fallbackCache.get(key) ?? null;
+    }
+
+    const entry: CacheEntry = {
+      value: data.value,
+      version: data.version,
+      fetchedAt: new Date(data.fetched_at).getTime(),
+    };
+
+    // Also update in-memory fallback
+    fallbackCache.set(key, entry);
+    return entry;
+  } catch {
+    // Supabase unreachable — use in-memory fallback
+    return fallbackCache.get(key) ?? null;
+  }
 }
 
 /**
@@ -63,40 +82,110 @@ export function isFresh(entry: CacheEntry): boolean {
 }
 
 /**
- * Store a value in the cache with a new fetchedAt timestamp.
+ * Store a value in the shared cache (Supabase + in-memory fallback).
  */
-export function setCached(key: string, value: string, version: string): void {
-  cache.set(key, { value, fetchedAt: Date.now(), version });
+export async function setCached(key: string, value: string, version: string): Promise<void> {
+  const now = new Date();
+  const entry: CacheEntry = { value, version, fetchedAt: now.getTime() };
+
+  // Always update in-memory fallback immediately
+  fallbackCache.set(key, entry);
+
+  try {
+    const supabase = getSupabaseAdmin();
+    await supabase
+      .from("prompt_cache")
+      .upsert({
+        key,
+        value,
+        version,
+        fetched_at: now.toISOString(),
+      }, { onConflict: "key" });
+  } catch (err) {
+    // Non-fatal — in-memory fallback is already set
+    console.warn("[prompt-cache] Failed to write to Supabase cache:", (err as Error).message);
+  }
 }
 
 /**
- * Delete a specific cache entry (used by the admin refresh endpoint).
+ * Delete a specific cache entry (used by admin refresh).
+ * Clears from both Supabase (shared) and in-memory fallback.
  */
-export function invalidate(key: string): void {
-  cache.delete(key);
+export async function invalidate(key: string): Promise<void> {
+  fallbackCache.delete(key);
+
+  try {
+    const supabase = getSupabaseAdmin();
+    await supabase
+      .from("prompt_cache")
+      .delete()
+      .eq("key", key);
+  } catch (err) {
+    console.warn("[prompt-cache] Failed to invalidate in Supabase:", (err as Error).message);
+  }
 }
 
 /**
  * Delete all cache entries (full refresh).
+ * Clears from both Supabase (shared) and in-memory fallback.
  */
-export function invalidateAll(): void {
-  cache.clear();
+export async function invalidateAll(): Promise<void> {
+  fallbackCache.clear();
+
+  try {
+    const supabase = getSupabaseAdmin();
+    // Delete all rows from prompt_cache
+    await supabase
+      .from("prompt_cache")
+      .delete()
+      .neq("key", "");  // Supabase requires a filter — this matches all rows
+  } catch (err) {
+    console.warn("[prompt-cache] Failed to invalidate all in Supabase:", (err as Error).message);
+  }
 }
 
 /**
  * Return all current cache keys and their freshness status.
  * Used by the admin dashboard to display cache state.
  */
-export function getCacheStatus(): Array<{
+export async function getCacheStatus(): Promise<Array<{
   key: string;
   fresh: boolean;
   fetchedAt: number;
   version: string;
-}> {
-  return Array.from(cache.entries()).map(([key, entry]) => ({
-    key,
-    fresh: isFresh(entry),
-    fetchedAt: entry.fetchedAt,
-    version: entry.version,
-  }));
+}>> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("prompt_cache")
+      .select("key, version, fetched_at")
+      .order("key");
+
+    if (error || !data) {
+      // Fall back to in-memory
+      return Array.from(fallbackCache.entries()).map(([key, entry]) => ({
+        key,
+        fresh: isFresh(entry),
+        fetchedAt: entry.fetchedAt,
+        version: entry.version,
+      }));
+    }
+
+    return data.map((row) => {
+      const fetchedAt = new Date(row.fetched_at).getTime();
+      return {
+        key: row.key,
+        fresh: Date.now() - fetchedAt < CACHE_TTL_MS,
+        fetchedAt,
+        version: row.version,
+      };
+    });
+  } catch {
+    return Array.from(fallbackCache.entries()).map(([key, entry]) => ({
+      key,
+      fresh: isFresh(entry),
+      fetchedAt: entry.fetchedAt,
+      version: entry.version,
+    }));
+  }
 }

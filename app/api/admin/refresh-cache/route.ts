@@ -80,13 +80,13 @@ export async function POST(request: NextRequest) {
   const cleared: string[] = [];
 
   if (body.scope === "all") {
-    invalidateAllCaches();
+    await invalidateAllCaches();
     cleared.push("all");
     console.info(
       `[refresh-cache] Admin ${session.user.email} cleared ALL caches.`
     );
   } else if (body.scope === "dna") {
-    invalidateDnaDigestCache();
+    await invalidateDnaDigestCache();
     cleared.push("dna_digest");
     console.info(
       `[refresh-cache] Admin ${session.user.email} cleared DNA Digest cache.`
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    invalidateAdvisorCache(body.advisorId);
+    await invalidateAdvisorCache(body.advisorId);
     cleared.push(`doc:advisor:${body.advisorId}`);
     console.info(
       `[refresh-cache] Admin ${session.user.email} cleared cache for advisor "${body.advisorId}".`
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     message:
       `Cache cleared (${cleared.join(", ")}). ` +
       "The next request for affected advisors will fetch fresh content from Google Docs.",
-    cacheStatus: getCacheStatus(),
+    cacheStatus: await getCacheStatus(),
   });
 }
 
@@ -133,6 +133,6 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    cacheStatus: getCacheStatus(),
+    cacheStatus: await getCacheStatus(),
   });
 }
