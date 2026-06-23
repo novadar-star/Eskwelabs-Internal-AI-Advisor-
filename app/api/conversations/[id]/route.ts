@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getSupabaseUserClient } from "@/lib/supabase";
+import { getSupabaseUserClient, getSupabaseAdmin } from "@/lib/supabase";
 
 /**
  * PATCH /api/conversations/[id]
@@ -136,14 +136,15 @@ export async function DELETE(
   }
 
   try {
-    // ── 2. Initialize User-Scoped Client ─────────────────────────────────
-    const supabase = await getSupabaseUserClient(userId);
+    // ── 2. Initialize Admin Client to bypass missing RLS DELETE policy ───
+    const supabase = getSupabaseAdmin();
 
-    // ── 3. Perform Deletion (Natural RLS enforcement) ─────────────────────
+    // ── 3. Perform Deletion (Enforce ownership explicitly) ────────────────
     const { data, error } = await supabase
       .from("conversations")
       .delete()
       .eq("id", conversationId)
+      .eq("user_id", userId)
       .select("id");
 
     if (error) {

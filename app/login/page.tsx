@@ -6,6 +6,7 @@
  */
 
 import { Suspense } from "react";
+import Image from "next/image";
 import SignInButton from "@/app/login/SignInButton";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -38,13 +39,14 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
           {/* Logo / branding */}
           <div className="mb-8 text-center">
             {/* Logo placeholder — replace src with actual logo when available */}
-            <div
-              className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl text-white text-lg font-bold tracking-tight"
-              style={{ backgroundColor: "var(--accent)" }}
-              aria-hidden="true"
-            >
-              E
-            </div>
+            <Image
+              src="/eskwelabs_logo.jpg"
+              alt="Eskwelabs"
+              width={48}
+              height={48}
+              className="mx-auto mb-5 rounded-xl object-cover"
+              priority
+            />
             <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               Eskwelabs AI Advisor
             </h1>

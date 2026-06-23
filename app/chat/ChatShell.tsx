@@ -42,6 +42,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { ADVISORS, getAdvisor } from "@/lib/advisors";
 import type { AdvisorId, Conversation, Message } from "@/lib/chat-types";
 import Sidebar from "@/components/chat/Sidebar";
@@ -93,12 +94,13 @@ async function fetchConversations(): Promise<Conversation[]> {
   const res = await fetch("/api/conversations");
   if (!res.ok) return [];
   const data = await res.json() as {
-    conversations: Array<{ id: string; advisor_id: string; title: string; updated_at: string }>;
+    conversations: Array<{ id: string; advisor_id: string; title: string; created_at: string; updated_at: string }>;
   };
   return (data.conversations ?? []).map((c) => ({
     id: c.id,
     advisorId: c.advisor_id as AdvisorId,
     title: c.title,
+    createdAt: new Date(c.created_at),
     updatedAt: new Date(c.updated_at),
   }));
 }
@@ -107,13 +109,15 @@ async function fetchMessages(conversationId: string): Promise<Message[]> {
   const res = await fetch(`/api/conversations/${conversationId}/messages`);
   if (!res.ok) return [];
   const data = await res.json() as {
-    messages: Array<{ id: string; role: "user" | "assistant"; content: string; created_at: string }>;
+    messages: Array<{ id: string; role: "user" | "assistant"; content: string; provider?: string | null; model?: string | null; created_at: string }>;
   };
   return (data.messages ?? []).map((m) => ({
     id: m.id,
     role: m.role,
     content: m.content,
     createdAt: new Date(m.created_at),
+    provider: m.provider,
+    model: m.model,
   }));
 }
 
@@ -441,9 +445,19 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
           className="flex h-11 flex-shrink-0 items-center justify-between px-5"
           style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--bg-base)" }}
         >
-          <span className="text-[13px] font-semibold tracking-tight" style={{ color: "var(--ink)" }}>
-            Eskwelabs AI Advisor
-          </span>
+          <div className="flex items-center gap-2">
+            <Image
+              src="/eskwelabs_logo.jpg"
+              alt="Eskwelabs"
+              width={22}
+              height={22}
+              className="rounded-md object-cover"
+              priority
+            />
+            <span className="text-[13px] font-semibold tracking-tight" style={{ color: "var(--ink)" }}>
+              Eskwelabs AI Advisor
+            </span>
+          </div>
 
           <div className="flex items-center gap-3">
             {userRole === "admin" && (
@@ -499,9 +513,10 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
                 conversationId={activeConversationId}
                 isLimitReached={usage !== null && usage.remaining <= 0}
                 usage={usage}
+                isAdmin={userRole === "admin"}
               />
             ) : (
-              <AdvisorPicker advisors={ADVISORS} onSelectAdvisor={handleSelectAdvisor} />
+              <AdvisorPicker advisors={ADVISORS} onSelectAdvisor={handleSelectAdvisor} userRole={userRole} />
             )}
           </main>
         </div>

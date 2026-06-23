@@ -1,14 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <!-- Rounded square background -->
-  <rect width="32" height="32" rx="8" fill="#1a1a2e"/>
-  <!-- "E" lettermark -->
-  <text
-    x="16"
-    y="23"
-    font-family="system-ui, -apple-system, sans-serif"
-    font-size="20"
-    font-weight="700"
-    fill="white"
-    text-anchor="middle"
-  >E</text>
+  <!-- Teal-to-green gradient background matching Eskwelabs brand -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1B6B5A"/>
+      <stop offset="100%" stop-color="#0f3d31"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <!-- Eskwelabs crystal/prism mark — simplified geometric form -->
+  <!-- Outer left panel -->
+  <polygon points="8,22 13,8 13,19" fill="none" stroke="white" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- Outer right panel -->
+  <polygon points="24,22 19,8 19,19" fill="none" stroke="white" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- Center connecting lines -->
+  <line x1="13" y1="8" x2="19" y2="8" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="8" y1="22" x2="16" y2="19" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="24" y1="22" x2="16" y2="19" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="13" y1="19" x2="19" y2="19" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
 </svg>

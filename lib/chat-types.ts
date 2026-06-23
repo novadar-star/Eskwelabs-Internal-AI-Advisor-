@@ -26,12 +26,15 @@ export interface Message {
   role: MessageRole;
   content: string;
   createdAt: Date;
+  provider?: string | null;
+  model?: string | null;
 }
 
 export interface Conversation {
   id: string;
   advisorId: AdvisorId;
   title: string;
+  createdAt: Date;
   updatedAt: Date;
   /** Preview of the last message — shown in the sidebar */
   lastMessage?: string;
