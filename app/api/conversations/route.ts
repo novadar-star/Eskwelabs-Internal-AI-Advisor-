@@ -42,7 +42,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("conversations")
-    .select("id, advisor_id, title, updated_at")
+    .select("id, advisor_id, title, created_at, updated_at")
     .eq("user_id", userId)          // ← ownership enforcement
     .order("updated_at", { ascending: false })
     .limit(50);                      // reasonable cap for the sidebar
