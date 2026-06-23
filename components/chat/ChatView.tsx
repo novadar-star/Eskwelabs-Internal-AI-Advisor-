@@ -6,6 +6,7 @@ import { ADVISOR_BORDER_COLOR } from "@/lib/advisors";
 import MessageList from "@/components/chat/MessageList";
 import MessageInput from "@/components/chat/MessageInput";
 import AdvisorIcon from "@/components/AdvisorIcon";
+import ModelSelector from "./ModelSelector";
 
 interface UsageStats {
   dailyLimit: number;
@@ -26,6 +27,7 @@ interface ChatViewProps {
   conversationId: string | null;
   isLimitReached: boolean;
   usage: UsageStats | null;
+  isAdmin: boolean;
 }
 
 export default function ChatView({
@@ -39,6 +41,7 @@ export default function ChatView({
   conversationId,
   isLimitReached,
   usage,
+  isAdmin,
 }: ChatViewProps) {
   const iconColor = ADVISOR_BORDER_COLOR[advisor.id] ?? "var(--accent)";
 
@@ -115,8 +118,12 @@ export default function ChatView({
           )}
         </div>
 
-        {/* Export button */}
-        <div className="ml-auto flex items-center gap-2">
+        {/* Model selector & Export button */}
+        <div className="ml-auto flex items-center gap-3">
+          <ModelSelector
+            advisorId={advisor.id}
+            isAdmin={isAdmin}
+          />
           {conversationId && (
             <button
               onClick={handleExport}
