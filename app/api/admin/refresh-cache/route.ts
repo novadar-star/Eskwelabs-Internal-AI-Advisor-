@@ -30,6 +30,7 @@ import {
   invalidateAllCaches,
 } from "@/lib/prompt-loader";
 import { getCacheStatus } from "@/lib/prompt-cache";
+import { logEvent } from "@/lib/telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -110,6 +111,8 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 4. Return confirmation + current cache status ─────────────────────
+  logEvent({ event: "admin_cache_refresh", userId: session.user.id, metadata: { scope: body.scope, cleared, email: session.user.email } });
+
   return NextResponse.json({
     ok: true,
     cleared,

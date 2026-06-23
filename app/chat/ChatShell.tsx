@@ -505,6 +505,16 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
             )}
           </main>
         </div>
+
+        {/* ── Persistent logging footer (FR-11) ─────────────────────── */}
+        <footer
+          className="flex-shrink-0 py-1.5 text-center"
+          style={{ borderTop: "1px solid var(--border)", backgroundColor: "var(--bg-base)" }}
+        >
+          <p className="text-[11px]" style={{ color: "var(--ink-faint)" }}>
+            All conversations are logged and may be reviewed by Eskwelabs administrators.
+          </p>
+        </footer>
       </div>
     </>
   );

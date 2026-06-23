@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { logEvent } from "@/lib/telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +93,8 @@ export async function POST(request: NextRequest) {
   console.info(
     `[admin/model-config] ${session.user.email} updated ${advisorId}: ${provider}/${model}`
   );
+
+  logEvent({ event: "admin_model_changed", userId: session.user.id, metadata: { advisorId, provider, model, email: session.user.email } });
 
   return NextResponse.json({ ok: true, config: data });
 }

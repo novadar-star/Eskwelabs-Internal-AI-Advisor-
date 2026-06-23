@@ -54,8 +54,13 @@ import {
   updateUsageCounters,
   logBlockedMessage,
 } from "@/lib/cost-guard";
+import { logEvent } from "@/lib/telemetry";
 
 // ── Constants ──────────────────────────────────────────────────────────────
+
+// Allow up to 60 seconds for streaming LLM responses (Vercel Pro plan).
+// Without this, the default 10s timeout on Hobby plan would cut off long responses.
+export const maxDuration = 60;
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -175,6 +180,8 @@ export async function POST(request: NextRequest) {
       guardResult.message
     );
 
+    logEvent({ event: "request_blocked", userId, metadata: { advisorId, reason: guardResult.reason } });
+
     // Return the block message as a 429 so the client can display it clearly
     return NextResponse.json(
       { error: guardResult.message, blocked: true, reason: guardResult.reason },
@@ -198,10 +205,30 @@ export async function POST(request: NextRequest) {
   const { systemPrompt, promptDocRevision, dnaDigestVersion } =
     await getSystemPrompt(advisorId);
 
+  // If systemPrompt is empty, it means Google Docs fetch failed with no cache.
+  // Do NOT proceed with an LLM call — return a clear user-facing error.
+  if (!systemPrompt) {
+    return NextResponse.json(
+      {
+        error: "This advisor is temporarily unavailable. Please try again in a few minutes.",
+        errorType: "docs_unavailable",
+      },
+      { status: 503 }
+    );
+  }
+
   // ── 6. Look up the active model for this advisor ─────────────────────
   // Reads from Supabase model_config — admins can change this via the
   // admin dashboard without redeployment. Falls back to DEFAULT_MODEL.
   const MODEL = await getModelForAdvisor(advisorId);
+
+  // ── Telemetry: message_sent + advisor/conversation context ──────────
+  logEvent({ event: "message_sent", userId, metadata: { advisorId, conversationId, model: MODEL } });
+  if (conversationId) {
+    logEvent({ event: "conversation_resumed", userId, metadata: { conversationId, advisorId } });
+  } else {
+    logEvent({ event: "advisor_selected", userId, metadata: { advisorId } });
+  }
 
   // ── 7. Build OpenAI-format messages ──────────────────────────────────
   // The system prompt is the first message — assembled server-side,
@@ -220,6 +247,7 @@ export async function POST(request: NextRequest) {
 
   let openRouterResponse: Response;
   try {
+    logEvent({ event: "llm_call_started", userId, metadata: { advisorId, model: MODEL } });
     openRouterResponse = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: {
@@ -242,6 +270,7 @@ export async function POST(request: NextRequest) {
     // Network-level failure reaching OpenRouter (DNS, timeout, etc.)
     // Log the real error server-side; return a safe errorType to the client.
     console.error("[api/chat] Failed to reach OpenRouter:", err);
+    logEvent({ event: "provider_error", userId, metadata: { advisorId, model: MODEL, error: "network_failure" } });
     return NextResponse.json(
       { error: "Could not reach the AI provider. Please try again.", errorType: "provider_error" },
       { status: 503 }
@@ -257,6 +286,7 @@ export async function POST(request: NextRequest) {
       `[api/chat] OpenRouter error ${openRouterResponse.status}:`,
       errorText
     );
+    logEvent({ event: "provider_error", userId, metadata: { advisorId, model: MODEL, httpStatus: openRouterResponse.status } });
     const status = openRouterResponse.status;
     if (status === 401) {
       // Config error — admin needs to fix the API key
@@ -414,6 +444,8 @@ export async function POST(request: NextRequest) {
         console.info(
           `[api/chat] Turn persisted — conv=${result.conversationId} latency=${latencyMs}ms`
         );
+
+        logEvent({ event: "llm_call_completed", userId, metadata: { advisorId, model: MODEL, conversationId: result.conversationId, promptTokens, completionTokens, latencyMs } });
 
         // ── Update usage counters after successful LLM call ───────────
         // Uses actual token counts from OpenRouter's usage event.

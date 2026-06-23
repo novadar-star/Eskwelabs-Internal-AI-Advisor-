@@ -63,6 +63,21 @@ export async function GET() {
     return NextResponse.json({ error: "Failed to load usage data." }, { status: 500 });
   }
 
+  // Fetch today's blocked requests count
+  const todayStart = `${todayPH}T00:00:00+08:00`;
+  const { data: blockedData } = await supabase
+    .from("messages")
+    .select("user_id, block_reason")
+    .eq("status", "blocked")
+    .gte("created_at", todayStart);
+
+  const blockedByUser: Record<string, number> = {};
+  let totalBlocked = 0;
+  for (const row of blockedData ?? []) {
+    blockedByUser[row.user_id] = (blockedByUser[row.user_id] ?? 0) + 1;
+    totalBlocked++;
+  }
+
   // Shape the rows and compute totals
   const rows = (data ?? []).map((r) => ({
     userId: r.user_id,
@@ -70,12 +85,14 @@ export async function GET() {
     messagesToday: r.messages_today,
     tokensToday: r.tokens_today,
     estSpendTodayUsd: Number(r.est_spend_today_usd ?? 0),
+    blockedToday: blockedByUser[r.user_id] ?? 0,
   }));
 
   const totals = {
     messagesToday: rows.reduce((s, r) => s + r.messagesToday, 0),
     tokensToday: rows.reduce((s, r) => s + r.tokensToday, 0),
     estSpendTodayUsd: rows.reduce((s, r) => s + r.estSpendTodayUsd, 0),
+    blockedToday: totalBlocked,
   };
 
   return NextResponse.json({ rows, totals, date: todayPH });

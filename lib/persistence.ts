@@ -55,6 +55,7 @@
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { estimateCost } from "@/lib/cost-guard";
+import { logEvent } from "@/lib/telemetry";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -111,7 +112,8 @@ async function withRetry<T>(
     try {
       return await fn();
     } catch (secondErr) {
-      console.error(`[persistence] ${label} failed after retry:`, secondErr);
+      console.error(`[persistence] supabase_write_error — ${label} failed after retry:`, secondErr);
+      logEvent({ event: "supabase_write_error", metadata: { label, error: (secondErr as Error).message } });
       throw secondErr;
     }
   }

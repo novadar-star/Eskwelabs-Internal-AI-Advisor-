@@ -26,6 +26,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import type { User } from "next-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { logEvent } from "@/lib/telemetry";
 
 // Local type alias so we can annotate user.role without redeclaring
 // the module augmentation here (that lives in types/next-auth.d.ts)
@@ -84,6 +85,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Email not on allow-list or account is deactivated.
           // Redirect to /login with a descriptive error query param.
           console.warn(`[auth] signIn denied for ${email}: not on allow-list`);
+          logEvent({ event: "login_denied", metadata: { email, reason: "not_on_allow_list" } });
           return "/login?error=not_authorized";
         }
 
@@ -97,11 +99,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         console.info(
           `[auth] signIn allowed for ${email} with role=${allowedUser.role}`
         );
+        logEvent({ event: "login_success", userId: allowedUser.id, metadata: { email, role: allowedUser.role } });
         return true;
       } catch (err) {
         // Unexpected error (e.g., Supabase unreachable).
         // Deny access and log — do NOT expose error details to the client.
         console.error("[auth] signIn error during allow-list check:", err);
+        logEvent({ event: "login_denied", metadata: { email, reason: "server_error" } });
         return "/login?error=server_error";
       }
     },
