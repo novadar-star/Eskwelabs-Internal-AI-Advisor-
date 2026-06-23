@@ -38,7 +38,7 @@ create table if not exists public.conversations (
 );
 
 comment on table  public.conversations            is 'Named chat sessions between a user and an advisor.';
-comment on column public.conversations.advisor_id is 'Identifies the advisor: data_dashboard | ssot_memo | advisor_3.';
+comment on column public.conversations.advisor_id is 'Identifies the advisor: data_dashboard | ssot_memo | data_modeling.';
 
 -- Auto-update updated_at on every row change
 create or replace function public.set_updated_at()
@@ -117,7 +117,7 @@ comment on column public.usage_counters.tokens_today   is 'Total tokens consumed
 -- One row per advisor. Admins change provider/model here; no redeployment needed.
 -- ============================================================
 create table if not exists public.model_config (
-  advisor_id  text        primary key,               -- data_dashboard | ssot_memo | advisor_3
+  advisor_id  text        primary key,               -- data_dashboard | ssot_memo | data_modeling
   provider    text        not null check (provider in ('openai', 'google', 'anthropic')),
   model       text        not null,                  -- e.g. gpt-4o, gemini-1.5-pro, claude-3-5-sonnet
   updated_by  text,                                  -- email of admin who last changed this
@@ -132,8 +132,14 @@ comment on column public.model_config.model     is 'Model identifier string as a
 insert into public.model_config (advisor_id, provider, model) values
   ('data_dashboard', 'openai',    'gpt-4o'),
   ('ssot_memo',      'openai',    'gpt-4o'),
-  ('advisor_3',      'openai',    'gpt-4o')
+  ('data_modeling',  'openai',    'gpt-4o')
 on conflict (advisor_id) do nothing;
+
+-- Add foreign key constraint to conversations (advisor_id references model_config.advisor_id)
+alter table public.conversations
+  add constraint conversations_advisor_id_fkey
+  foreign key (advisor_id) references public.model_config (advisor_id)
+  on delete restrict;
 
 
 -- ============================================================
