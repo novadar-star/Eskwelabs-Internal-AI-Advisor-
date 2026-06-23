@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getSupabaseUserClient } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(request: NextRequest) {
   // ── 1. Explicit 401 for unauthenticated requests ──────────────────────
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // ── 2. Initialize User-Scoped Client ─────────────────────────────────
-    const supabase = await getSupabaseUserClient(userId);
+    // ── 2. Initialize Admin Client (with explicit user_id filtering) ─────
+    const supabase = getSupabaseAdmin();
 
     // ── 3. Query Conversations by Title ──────────────────────────────────
     let conversationsQuery = supabase
