@@ -43,7 +43,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
-import { ADVISORS, getAdvisor } from "@/lib/advisors";
+import { ADVISORS } from "@/lib/advisors";
 import type { AdvisorId, Conversation, Message } from "@/lib/chat-types";
 import Sidebar from "@/components/chat/Sidebar";
 import AdvisorPicker from "@/components/chat/AdvisorPicker";
@@ -140,6 +140,9 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
   const [isSending, setIsSending]                     = useState(false);
   const [isLoadingMessages, setIsLoadingMessages]     = useState(false);
 
+  // Dynamic advisors — fetched from DB, falls back to hardcoded ADVISORS
+  const [advisors, setAdvisors] = useState(ADVISORS);
+
   // Daily chat limit usage statistics
   const [usage, setUsage] = useState<UsageStats | null>(null);
 
@@ -161,6 +164,23 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
   useEffect(() => {
     fetchConversations().then(setConversations);
     fetchUsage();
+
+    // Fetch dynamic advisors from DB
+    fetch("/api/advisors")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.advisors?.length > 0) {
+          setAdvisors(data.advisors.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            shortName: a.shortName,
+            description: a.description,
+            iconLabel: a.iconLabel,
+            accentColor: "text-advisor-dashboard", // default
+          })));
+        }
+      })
+      .catch(() => { /* keep hardcoded fallback */ });
   }, [fetchUsage]);
 
   const refreshConversations = useCallback(async () => {
@@ -428,7 +448,7 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const activeAdvisor = selectedAdvisorId ? getAdvisor(selectedAdvisorId) : null;
+  const activeAdvisor = selectedAdvisorId ? advisors.find((a) => a.id === selectedAdvisorId) : null;
   const showChatView  = selectedAdvisorId !== null && activeAdvisor != null;
 
   return (
@@ -495,7 +515,7 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
             onNewChat={handleNewChat}
             onRenameConversation={handleRenameConversation}
             onDeleteConversation={handleDeleteConversation}
-            advisors={ADVISORS}
+            advisors={advisors}
             usage={usage}
           />
 
@@ -516,7 +536,7 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
                 isAdmin={userRole === "admin"}
               />
             ) : (
-              <AdvisorPicker advisors={ADVISORS} onSelectAdvisor={handleSelectAdvisor} userRole={userRole} />
+              <AdvisorPicker advisors={advisors} onSelectAdvisor={handleSelectAdvisor} userRole={userRole} />
             )}
           </main>
         </div>
