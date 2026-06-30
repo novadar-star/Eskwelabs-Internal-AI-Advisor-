@@ -85,7 +85,24 @@ export async function DELETE(
   if (session.user.role !== "admin") return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 
   const advisorId = params.id;
+  const hardDelete = _request.nextUrl.searchParams.get("hard") === "true";
   const supabase = getSupabaseAdmin();
+
+  if (hardDelete) {
+    // Delete from model_config first to avoid orphaned config rows
+    await supabase.from("model_config").delete().eq("advisor_id", advisorId);
+
+    // Delete from advisors table (this will cascade to user_advisor_favorites)
+    const { error } = await supabase.from("advisors").delete().eq("id", advisorId);
+
+    if (error) {
+      console.error(`[api/admin/advisors/${advisorId}] DELETE (hard) error:`, error.message);
+      return NextResponse.json({ error: "Failed to delete advisor permanently." }, { status: 500 });
+    }
+
+    logEvent({ event: "admin_model_changed", userId: session.user.id, metadata: { action: "advisor_deleted_permanently", advisorId, email: session.user.email } });
+    return NextResponse.json({ ok: true, message: `Advisor "${advisorId}" permanently deleted.` });
+  }
 
   // Soft delete: set is_active = false
   const { error } = await supabase
@@ -94,7 +111,7 @@ export async function DELETE(
     .eq("id", advisorId);
 
   if (error) {
-    console.error(`[api/admin/advisors/${advisorId}] DELETE error:`, error.message);
+    console.error(`[api/admin/advisors/${advisorId}] DELETE (soft) error:`, error.message);
     return NextResponse.json({ error: "Failed to deactivate advisor." }, { status: 500 });
   }
 

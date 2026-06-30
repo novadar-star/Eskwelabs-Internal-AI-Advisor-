@@ -38,3 +38,17 @@ export interface MonthlySpend {
   totalUsd: number;
   budget: number;
 }
+
+export interface AdvisorRow {
+  id: string;
+  name: string;
+  shortName: string;
+  description: string;
+  icon: string;
+  colorTheme?: any;
+  promptDocId: string | null;
+  purpose: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
