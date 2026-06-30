@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Advisor, AdvisorId } from "@/lib/chat-types";
 import { ADVISOR_BORDER_COLOR } from "@/lib/advisors";
 import AdvisorIcon from "@/components/AdvisorIcon";
@@ -154,11 +154,56 @@ export default function AdvisorPicker({
   userRole = "eif",
 }: AdvisorPickerProps) {
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    // Fetch favorites
+    fetch("/api/advisors/favorites")
+      .then(res => res.json())
+      .then(data => {
+        if (data.favorites) {
+          setFavorites(new Set(data.favorites));
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const toggleFavorite = async (advisorId: string, isFav: boolean) => {
+    // Optimistic UI update
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (isFav) next.delete(advisorId);
+      else next.add(advisorId);
+      return next;
+    });
+
+    try {
+      if (isFav) {
+        await fetch(`/api/advisors/favorites?advisor_id=${advisorId}`, { method: "DELETE" });
+      } else {
+        await fetch("/api/advisors/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ advisor_id: advisorId })
+        });
+      }
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+    }
+  };
 
   const tutorialSteps = [
     ...EIF_TUTORIAL_STEPS,
     ...(userRole === "admin" ? ADMIN_EXTRA_TIPS : []),
   ];
+
+  const favoriteAdvisors = advisors.filter(a => favorites.has(a.id));
+  const otherAdvisors = advisors.filter(a => !favorites.has(a.id));
+  
+  const MAX_VISIBLE = 6;
+  const displayedOtherAdvisors = showAll ? otherAdvisors : otherAdvisors.slice(0, MAX_VISIBLE);
+  const hasMore = otherAdvisors.length > MAX_VISIBLE;
 
   return (
     <div
@@ -308,16 +353,60 @@ export default function AdvisorPicker({
           </div>
         </div>
 
-        {/* ── Advisor cards grid ──────────────────────────────────────── */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {advisors.map((advisor) => (
-            <AdvisorCard
-              key={advisor.id}
-              advisor={advisor}
-              userRole={userRole}
-              onClick={() => onSelectAdvisor(advisor.id)}
-            />
-          ))}
+        {/* ── Favorite Advisors ──────────────────────────────────────── */}
+        {favoriteAdvisors.length > 0 && (
+          <div className="mb-10">
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-widest" style={{ color: "var(--ink-muted)" }}>
+              Your Favorites
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {favoriteAdvisors.map((advisor) => (
+                <AdvisorCard
+                  key={advisor.id}
+                  advisor={advisor}
+                  userRole={userRole}
+                  onClick={() => onSelectAdvisor(advisor.id)}
+                  isFavorite={true}
+                  onToggleFavorite={(e) => { e.stopPropagation(); toggleFavorite(advisor.id, true); }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── All Advisors ──────────────────────────────────────── */}
+        <div>
+          <h2 className="mb-4 text-xs font-bold uppercase tracking-widest" style={{ color: "var(--ink-muted)" }}>
+            {favoriteAdvisors.length > 0 ? "Other Advisors" : "All Advisors"}
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {displayedOtherAdvisors.map((advisor) => (
+              <AdvisorCard
+                key={advisor.id}
+                advisor={advisor}
+                userRole={userRole}
+                onClick={() => onSelectAdvisor(advisor.id)}
+                isFavorite={false}
+                onToggleFavorite={(e) => { e.stopPropagation(); toggleFavorite(advisor.id, false); }}
+              />
+            ))}
+          </div>
+
+          {hasMore && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setShowAll(!showAll)}
+                className="flex items-center gap-1 rounded-full px-4 py-2 text-xs font-semibold transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+                style={{ color: "var(--ink-muted)", border: "1px solid var(--border)" }}
+              >
+                {showAll ? (
+                  <>Show less <span className="ml-1 text-[10px]">▲</span></>
+                ) : (
+                  <>Show all {otherAdvisors.length} advisors <span className="ml-1 text-[10px]">▼</span></>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Footer note ─────────────────────────────────────────────── */}
@@ -340,21 +429,51 @@ interface AdvisorCardProps {
   advisor: Advisor;
   userRole: "eif" | "admin";
   onClick: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: (e: React.MouseEvent) => void;
 }
 
-function AdvisorCard({ advisor, userRole: _userRole, onClick }: AdvisorCardProps) {
+function AdvisorCard({ advisor, userRole: _userRole, onClick, isFavorite, onToggleFavorite }: AdvisorCardProps) {
   const [hovered, setHovered] = useState(false);
-  const meta = ADVISOR_META[advisor.id];
-  const gradient = ADVISOR_GRADIENT[advisor.id];
-  const borderColor = ADVISOR_BORDER_COLOR[advisor.id] ?? "var(--accent)";
+  const meta = ADVISOR_META[advisor.id] ?? {
+    tagline: advisor.description || "Specialized AI Advisor",
+    fullDescription: advisor.description || "This advisor is ready to assist you with your tasks.",
+    capabilities: ["General assistance"],
+    examplePrompts: ["How can you help me?"],
+  };
+  const defaultGradient = {
+    from: "#4a9585",
+    to: "#4a958580",
+    icon: "#ffffff",
+    bg: "#4a958515",
+  };
+
+  const gradient = advisor.colorTheme?.hex
+    ? {
+        from: advisor.colorTheme.hex,
+        to: `${advisor.colorTheme.hex}80`, // 50% opacity
+        icon: advisor.colorTheme.hex,
+        bg: `${advisor.colorTheme.hex}15`, // ~8% opacity
+      }
+    : (ADVISOR_GRADIENT[advisor.id] ?? defaultGradient);
+
+  const borderColor = advisor.colorTheme?.hex ?? (ADVISOR_BORDER_COLOR[advisor.id] ?? "var(--accent)");
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       aria-label={`Open ${advisor.name}`}
-      className="group relative flex flex-col overflow-hidden rounded-xl text-left transition-all duration-200"
+      className="group relative cursor-pointer flex items-start gap-4 overflow-hidden rounded-xl p-5 text-left transition-all duration-200"
       style={{
         backgroundColor: "var(--bg-raised)",
         border: `1px solid ${hovered ? borderColor : "var(--border)"}`,
@@ -364,27 +483,52 @@ function AdvisorCard({ advisor, userRole: _userRole, onClick }: AdvisorCardProps
         transform: hovered ? "translateY(-2px)" : "translateY(0)",
       }}
     >
-      {/* Card top accent bar */}
+      {/* Left Accent Bar */}
       <div
-        className="h-1 w-full"
+        className="absolute left-0 top-0 h-full w-1 transition-opacity duration-200"
         style={{
-          background: `linear-gradient(90deg, ${gradient.from}, ${gradient.to})`,
+          background: `linear-gradient(180deg, ${gradient.from}, ${gradient.to})`,
+          opacity: hovered ? 1 : 0.6,
         }}
       />
 
-      {/* Icon area */}
-      <div className="px-5 pt-5">
-        <div
-          className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-200"
-          style={{
-            backgroundColor: hovered ? gradient.from : gradient.bg,
-            color: hovered ? gradient.icon : borderColor,
-          }}
-        >
-          <AdvisorIcon icon={advisor.iconLabel} className="h-6 w-6" />
-        </div>
+      {/* Icon Area */}
+      <div
+        className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-all duration-200"
+        style={{
+          backgroundColor: hovered ? gradient.from : gradient.bg,
+          color: hovered ? gradient.icon : borderColor,
+        }}
+      >
+        <AdvisorIcon icon={advisor.iconLabel} className="h-6 w-6" />
+      </div>
 
-        {/* Name & tagline */}
+      {/* Favorite Button */}
+      <button
+        onClick={onToggleFavorite}
+        className={`absolute right-3 top-3 rounded-full p-1.5 transition-opacity duration-200 hover:bg-black/5 dark:hover:bg-white/10 focus:opacity-100 z-10 ${
+          isFavorite ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        }`}
+        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill={isFavorite ? "#f59e0b" : "none"}
+          stroke={isFavorite ? "#f59e0b" : "var(--ink-faint)"}
+          strokeWidth="2"
+          className="h-4 w-4"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+          />
+        </svg>
+      </button>
+
+      {/* Content Area */}
+      <div className="flex-1 pr-6">
         <h2
           className="text-[15px] font-bold leading-tight"
           style={{ color: "var(--ink)" }}
@@ -392,86 +536,18 @@ function AdvisorCard({ advisor, userRole: _userRole, onClick }: AdvisorCardProps
           {advisor.name}
         </h2>
         <p
-          className="mt-1 text-[12px] font-medium"
-          style={{ color: borderColor }}
+          className="mt-1 text-xs leading-relaxed line-clamp-2"
+          style={{ color: "var(--ink-muted)" }}
         >
           {meta.tagline}
         </p>
-      </div>
 
-      {/* Description */}
-      <div className="px-5 pt-3">
-        <p
-          className="text-[12px] leading-relaxed"
-          style={{ color: "var(--ink-muted)" }}
-        >
-          {meta.fullDescription}
-        </p>
-      </div>
-
-      {/* Capabilities */}
-      <div className="px-5 pt-3">
-        <p
-          className="mb-1.5 text-[10px] font-bold uppercase tracking-widest"
-          style={{ color: "var(--ink-faint)" }}
-        >
-          What it can help with
-        </p>
-        <ul className="space-y-1">
-          {meta.capabilities.slice(0, 3).map((cap) => (
-            <li key={cap} className="flex items-start gap-1.5">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="mt-0.5 h-3 w-3 flex-shrink-0"
-                style={{ color: borderColor }}
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span
-                className="text-[11px] leading-relaxed"
-                style={{ color: "var(--ink-muted)" }}
-              >
-                {cap}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Example prompt preview */}
-      <div className="mx-5 mt-3 rounded-lg px-3 py-2.5"
-        style={{ backgroundColor: "var(--bg-hover)" }}
-      >
-        <p
-          className="mb-1 text-[10px] font-bold uppercase tracking-widest"
-          style={{ color: "var(--ink-faint)" }}
-        >
-          Example question
-        </p>
-        <p
-          className="text-[11px] italic leading-relaxed"
-          style={{ color: "var(--ink-muted)" }}
-        >
-          &ldquo;{meta.examplePrompts[0]}&rdquo;
-        </p>
-      </div>
-
-      {/* CTA */}
-      <div className="mt-auto px-5 pb-5 pt-4">
-        <div
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg py-2.5 text-[12px] font-semibold text-white transition-all duration-200"
+        {/* Hover CTA text */}
+        <div 
+          className="mt-3 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200"
           style={{
-            background: hovered
-              ? `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`
-              : "var(--bg-hover)",
-            color: hovered ? "white" : borderColor,
-            border: `1px solid ${hovered ? "transparent" : borderColor + "40"}`,
+            color: hovered ? borderColor : "var(--ink-faint)",
+            opacity: hovered ? 1 : 0.6
           }}
         >
           Start chatting
@@ -479,7 +555,7 @@ function AdvisorCard({ advisor, userRole: _userRole, onClick }: AdvisorCardProps
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 16 16"
             fill="currentColor"
-            className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+            className={`h-3.5 w-3.5 transition-transform duration-200 ${hovered ? "translate-x-1" : ""}`}
           >
             <path
               fillRule="evenodd"
@@ -489,6 +565,6 @@ function AdvisorCard({ advisor, userRole: _userRole, onClick }: AdvisorCardProps
           </svg>
         </div>
       </div>
-    </button>
+    </div>
   );
 }

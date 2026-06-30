@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import type { Advisor, Conversation } from "@/lib/chat-types";
 import { ADVISOR_BORDER_COLOR, getAdvisor } from "@/lib/advisors";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import Link from "next/link";
 
 interface UsageStats {
   dailyLimit: number;
@@ -183,8 +184,8 @@ export default function Sidebar({
           ) : (
             <ul className="space-y-px">
               {searchResults.map((result) => {
-                const advisor = getAdvisor(result.advisor_id);
-                const borderColor = ADVISOR_BORDER_COLOR[result.advisor_id] ?? "var(--accent)";
+                const advisor = advisors.find(a => a.id === result.advisor_id) ?? getAdvisor(result.advisor_id);
+                const borderColor = advisor?.colorTheme?.hex ?? (ADVISOR_BORDER_COLOR[result.advisor_id] ?? "var(--accent)");
                 const isSelected = result.conversation_id === activeConversationId;
                 
                 const targetConversation: Conversation = {
@@ -258,8 +259,9 @@ export default function Sidebar({
         ) : (
           <ul className="space-y-px">
             {filteredConversations.map((conv) => {
+              const advisor = advisors.find(a => a.id === conv.advisorId) ?? getAdvisor(conv.advisorId);
               const isActive = conv.id === activeConversationId;
-              const borderColor = ADVISOR_BORDER_COLOR[conv.advisorId] ?? "var(--accent)";
+              const borderColor = advisor?.colorTheme?.hex ?? (ADVISOR_BORDER_COLOR[conv.advisorId] ?? "var(--accent)");
 
               return (
                 <li key={conv.id}>
@@ -408,7 +410,7 @@ export default function Sidebar({
                           }}
                           disabled={isProcessing}
                           className="p-1 rounded text-ink-muted hover:text-ink hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-                          title="Delete"
+                          title="Permanently Delete"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
                             <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.25 6a.75.75 0 0 1-1.497.062l-.25-6A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.25 6a.75.75 0 0 1-1.497-.062l.25-6A.75.75 0 0 1 9.95 6Z" clipRule="evenodd" />
@@ -447,13 +449,13 @@ export default function Sidebar({
               className="text-[14px] font-semibold mb-2"
               style={{ color: "var(--ink)" }}
             >
-              Delete conversation?
+              Permanently delete conversation?
             </h3>
             <p
               className="text-[13px] leading-normal mb-5"
               style={{ color: "var(--ink-muted)" }}
             >
-              Are you sure you want to delete this conversation? This cannot be undone.
+              Are you sure you want to permanently delete this conversation? This cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button

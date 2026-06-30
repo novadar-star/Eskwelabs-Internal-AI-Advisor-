@@ -83,6 +83,20 @@ export async function fetchGoogleDoc(
   return { text, revision };
 }
 
+/**
+ * Fetch only the title of a Google Doc by its document ID.
+ * Cheaper than fetchGoogleDoc — does not extract or validate body text.
+ * Used by the admin "Verify Doc" button as a lightweight accessibility check.
+ * Throws on auth failure, network failure, or if the doc is not accessible.
+ */
+export async function fetchGoogleDocTitle(docId: string): Promise<string> {
+  const auth = await getAuthClient();
+  const docs = google.docs({ version: "v1", auth });
+
+  const response = await docs.documents.get({ documentId: docId });
+  return response.data.title ?? "(Untitled)";
+}
+
 // ── Text extractor ─────────────────────────────────────────────────────────
 
 function extractText(doc: docs_v1.Schema$Document): string {

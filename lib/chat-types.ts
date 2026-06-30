@@ -6,7 +6,7 @@
  * can import from one place without circular dependencies.
  */
 
-export type AdvisorId = "data_dashboard" | "ssot_memo" | "data_modeling";
+export type AdvisorId = string;
 
 export interface Advisor {
   id: AdvisorId;
@@ -17,6 +17,7 @@ export interface Advisor {
   /** Tailwind color classes for the advisor's avatar/accent */
   accentColor: string;
   iconLabel: string; // single emoji used as avatar fallback
+  colorTheme?: any;
 }
 
 export type MessageRole = "user" | "assistant";

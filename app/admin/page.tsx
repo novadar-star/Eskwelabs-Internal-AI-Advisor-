@@ -18,10 +18,10 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { LIMITS_FALLBACK } from "@/lib/cost-guard";
 import { LIMIT_META } from "@/lib/limits-meta";
 import AdminDashboard from "@/app/admin/AdminDashboard";
-import type { UsageRow, ModelConfigRow, LimitRow, MonthlySpend } from "@/app/admin/types";
+import type { UsageRow, ModelConfigRow, LimitRow, MonthlySpend, AdvisorRow } from "@/app/admin/types";
 
 // Re-export for any other imports that depend on page.tsx types
-export type { UsageRow, ModelConfigRow, LimitRow, MonthlySpend };
+export type { UsageRow, ModelConfigRow, LimitRow, MonthlySpend, AdvisorRow };
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
@@ -110,6 +110,25 @@ export default async function AdminPage() {
     budget:   monthlyBudget,
   };
 
+  // ── 5. Advisors registry ──────────────────────────────────────────────
+  const { data: advisorsData } = await supabase
+    .from("advisors")
+    .select("id, name, short_name, description, icon, prompt_doc_id, purpose, is_active, created_at, updated_at")
+    .order("created_at", { ascending: true });
+
+  const advisorRows: AdvisorRow[] = (advisorsData ?? []).map((a) => ({
+    id:          a.id,
+    name:        a.name,
+    shortName:   a.short_name,
+    description: a.description,
+    icon:        a.icon,
+    promptDocId: a.prompt_doc_id ?? null,
+    purpose:     a.purpose,
+    isActive:    a.is_active,
+    createdAt:   a.created_at,
+    updatedAt:   a.updated_at,
+  }));
+
   return (
     <AdminDashboard
       adminEmail={session.user.email}
@@ -118,6 +137,7 @@ export default async function AdminPage() {
       modelConfigs={modelConfigs}
       limitsRows={limitsRows}
       monthlySpend={monthlySpend}
+      advisorRows={advisorRows}
     />
   );
 }
