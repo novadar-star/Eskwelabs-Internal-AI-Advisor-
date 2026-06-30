@@ -69,6 +69,10 @@ An internal AI advisory platform for Eskwelabs EIF (Eskwelabs Innovation Fellows
 | FR-13 | Manual cache refresh | Admin endpoint invalidates shared Supabase cache immediately |
 | FR-14 | DNA Digest | LLM-summarized brand guidelines prepended to every prompt |
 | FR-15 | RLS isolation | EIF users can only access their own data |
+| FR-16 | Dynamic Advisor Registry | `advisors` table — Admins can create/edit advisors without redeploying |
+| FR-17 | Advisor Favorites | `user_advisor_favorites` table — Users can favorite advisors in the chat UI |
+| FR-18 | Dynamic Theming | `color_theme` column — Custom accent colors per advisor |
+| FR-19 | Google Doc Verification | Admin UI validates Google Doc IDs before saving |
 
 ---
 
@@ -177,6 +181,8 @@ Or push to GitHub (auto-deploy if connected).
 | Table | Purpose |
 |-------|---------|
 | `users` | Allow-list with email, role (eif/admin), is_active, consent_given |
+| `advisors` | Dynamic registry of advisors (name, doc ID, color theme, active status) |
+| `user_advisor_favorites` | Tracks which users have favorited which advisors |
 | `conversations` | Chat sessions (user_id, advisor_id, title, timestamps) |
 | `messages` | All turns with full metadata (tokens, cost, status, model, latency) |
 | `usage_counters` | Per-user daily accumulators (messages, tokens, spend) keyed by PH date |
@@ -270,9 +276,10 @@ The Eskwelabs DNA document (~30 pages) is summarized by an LLM into a 300-500 to
 Accessible at `/admin` (admin role only). Sections:
 
 1. **Usage Overview** — Today's per-user stats (messages, tokens, cost) + monthly spend tracker
-2. **Cost & Rate Limits** — Edit all caps live (takes effect immediately)
-3. **Model Configuration** — Set provider + model per advisor independently
-4. **Prompt Cache** — View cache status, force refresh
+2. **Advisor Registry** — Create, edit, and deactivate advisors dynamically, with built-in Google Doc verification
+3. **Cost & Rate Limits** — Edit all caps live (takes effect immediately)
+4. **Model Configuration** — Set provider + model per advisor (auto-generated for new advisors)
+5. **Prompt Cache** — View cache status, force refresh
 
 ---
 
