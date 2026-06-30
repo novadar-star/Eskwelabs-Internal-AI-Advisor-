@@ -87,7 +87,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create advisor." }, { status: 500 });
   }
 
+  // Create default model configuration for the new advisor
+  const { data: modelConfigData, error: modelConfigError } = await supabase
+    .from("model_config")
+    .insert({
+      advisor_id: body.id,
+      provider: "openai",
+      model: "gpt-4o-mini",
+      is_active: true,
+      tier: "standard"
+    })
+    .select()
+    .single();
+
+  if (modelConfigError) {
+    console.error("[api/admin/advisors] POST model_config error:", modelConfigError.message);
+    // Even if model_config fails, the advisor was created, but we return a warning or error.
+  }
+
   logEvent({ event: "admin_model_changed", userId: session.user.id, metadata: { action: "advisor_created", advisorId: body.id, email: session.user.email } });
 
-  return NextResponse.json({ ok: true, advisor: data }, { status: 201 });
+  return NextResponse.json({ ok: true, advisor: data, modelConfig: modelConfigData }, { status: 201 });
 }

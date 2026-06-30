@@ -427,7 +427,7 @@ export default function AdminDashboard({
           purpose: newAdvisor.purpose.trim(),
         }),
       });
-      const data = await res.json() as { ok?: boolean; advisor?: unknown; error?: string };
+      const data = await res.json() as { ok?: boolean; advisor?: unknown; modelConfig?: unknown; error?: string };
       if (!res.ok || !data.ok) {
         setCreateStatus({ ok: false, msg: data.error ?? "Failed to create advisor." });
         return;
@@ -443,6 +443,20 @@ export default function AdminDashboard({
         promptDocId: created.prompt_doc_id, purpose: created.purpose,
         isActive: created.is_active, createdAt: created.created_at, updatedAt: created.updated_at,
       }]);
+      
+      if (data.modelConfig) {
+        const createdModelConfig = data.modelConfig as {
+          advisor_id: string; provider: string; model: string; updated_by: string | null; updated_at: string | null;
+        };
+        setModelConfigs((prev) => [...prev, {
+          advisorId: createdModelConfig.advisor_id,
+          provider: createdModelConfig.provider,
+          model: createdModelConfig.model,
+          updatedBy: createdModelConfig.updated_by,
+          updatedAt: createdModelConfig.updated_at,
+        }]);
+      }
+      
       setNewAdvisor({ id: "", name: "", shortName: "", description: "", icon: "document", colorTheme: "", promptDocId: "", purpose: "" });
       setIdTouched(false);
       setIdFormatError(null);
