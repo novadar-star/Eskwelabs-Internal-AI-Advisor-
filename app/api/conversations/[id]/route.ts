@@ -136,10 +136,10 @@ export async function DELETE(
   }
 
   try {
-    // ── 2. Initialize Admin Client to bypass missing RLS DELETE policy ───
+    // ── 3. Initialize Admin Client to bypass missing RLS DELETE policy ───
     const supabase = getSupabaseAdmin();
 
-    // ── 3. Perform Deletion (Enforce ownership explicitly) ────────────────
+    // ── 4. Perform Hard Delete ────────────────────────────────
     const { data, error } = await supabase
       .from("conversations")
       .delete()
@@ -155,7 +155,6 @@ export async function DELETE(
       );
     }
 
-    // If RLS blocked the delete, or the conversation did not exist, no row was returned
     if (!data || data.length === 0) {
       return NextResponse.json(
         { error: "Conversation not found." },
@@ -163,7 +162,7 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, hardDeleted: true });
   } catch (err: any) {
     console.error("[api/conversations/delete] Server error:", err.message || err);
     return NextResponse.json(

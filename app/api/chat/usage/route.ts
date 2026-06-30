@@ -17,13 +17,15 @@ export async function GET() {
 
   try {
     // ── 2. Fetch user role to resolve dynamic limit ────────────────────
+    let role = "eif";
+
     const { data: userData, error: userErr } = await supabase
       .from("users")
       .select("role")
       .eq("id", userId)
       .single();
 
-    if (userErr || !userData) {
+    if (userErr && userErr.code !== "PGRST116") {
       console.error("[api/chat/usage] Failed to load user role:", userErr?.message);
       return NextResponse.json(
         { error: "Failed to resolve user role." },
@@ -31,7 +33,9 @@ export async function GET() {
       );
     }
 
-    const role = userData.role;
+    if (userData?.role) {
+      role = userData.role;
+    }
     const dailyLimit = ROLE_LIMITS[role as keyof typeof ROLE_LIMITS] ?? ROLE_LIMITS.eif;
 
     // ── 3. Fetch today's usage counters ───────────────────────────────
