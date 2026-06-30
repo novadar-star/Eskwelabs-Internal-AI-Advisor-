@@ -97,7 +97,17 @@ export default function AdminDashboard({
 }: AdminDashboardProps) {
 
   // ── Model config state ───────────────────────────────────────────────
-  const [modelConfigs, setModelConfigs]   = useState<ModelConfigRow[]>(initialConfigs);
+  const [modelConfigs, setModelConfigs]   = useState<ModelConfigRow[]>(() => {
+    return initialAdvisors.map(adv => {
+      return initialConfigs.find(c => c.advisorId === adv.id) || {
+        advisorId: adv.id,
+        provider: "openai",
+        model: "gpt-4o-mini",
+        updatedBy: null,
+        updatedAt: null,
+      } as ModelConfigRow;
+    });
+  });
   const [savingAdvisor, setSavingAdvisor] = useState<string | null>(null);
   const [modelSaveStatus, setModelSaveStatus] = useState<Record<string, { ok: boolean; msg: string }>>({});
 
