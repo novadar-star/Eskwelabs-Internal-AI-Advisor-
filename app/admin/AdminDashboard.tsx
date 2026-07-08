@@ -123,6 +123,11 @@ export default function AdminDashboard({
     { loading: false, result: null, ok: null }
   );
 
+  // ── Sheet sync state ───────────────────────────────────────────────────
+  const [sheetSyncStatus, setSheetSyncStatus] = useState<{ loading: boolean; result: string | null; ok: boolean | null }>(
+    { loading: false, result: null, ok: null }
+  );
+
   // ── Advisor state ───────────────────────────────────────
   const [advisors, setAdvisors] = useState<AdvisorRow[]>(initialAdvisors);
   const [editingAdvisorId, setEditingAdvisorId] = useState<string | null>(null);
@@ -850,23 +855,57 @@ export default function AdminDashboard({
         <section>
           <div className="flex items-center justify-between mb-4">
             <SectionLabel label="Advisor Registry" />
-            <GhostButton
-              onClick={() => {
-                setShowCreateForm((v) => !v);
-                setCreateStatus(null);
-                if (!showCreateForm) {
-                  setIdTouched(false);
-                  setIdFormatError(null);
-                  setIdDuplicate(null);
-                  setDocVerify((prev) => { const n = { ...prev }; delete n["create"]; return n; });
-                }
-                setTimeout(() => createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-              }}
-              disabled={false}
-            >
-              {showCreateForm ? "Cancel" : "+ New Advisor"}
-            </GhostButton>
+            <div className="flex items-center gap-2">
+              <GhostButton
+                onClick={async () => {
+                  setSheetSyncStatus({ loading: true, result: null, ok: null });
+                  try {
+                    const res = await fetch("/api/admin/advisors/sync", { method: "POST" });
+                    const data = await res.json();
+                    if (res.ok) {
+                      setSheetSyncStatus({ loading: false, result: `Synced ${data.advisors?.length ?? 0} advisor(s) from Google Sheets.`, ok: true });
+                      // Refresh advisor list
+                      const refreshRes = await fetch("/api/admin/advisors");
+                      if (refreshRes.ok) {
+                        const refreshData = await refreshRes.json();
+                        setAdvisors(refreshData.advisors ?? []);
+                      }
+                    } else {
+                      setSheetSyncStatus({ loading: false, result: data.error || "Sync failed.", ok: false });
+                    }
+                  } catch {
+                    setSheetSyncStatus({ loading: false, result: "Network error during sync.", ok: false });
+                  }
+                }}
+                disabled={sheetSyncStatus.loading}
+              >
+                {sheetSyncStatus.loading ? "Syncing…" : "⬇ Sync from Sheet"}
+              </GhostButton>
+              <GhostButton
+                onClick={() => {
+                  setShowCreateForm((v) => !v);
+                  setCreateStatus(null);
+                  if (!showCreateForm) {
+                    setIdTouched(false);
+                    setIdFormatError(null);
+                    setIdDuplicate(null);
+                    setDocVerify((prev) => { const n = { ...prev }; delete n["create"]; return n; });
+                  }
+                  setTimeout(() => createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+                }}
+                disabled={false}
+              >
+                {showCreateForm ? "Cancel" : "+ New Advisor"}
+              </GhostButton>
+            </div>
           </div>
+
+          {/* Sheet sync status message */}
+          {sheetSyncStatus.result && (
+            <p style={{ marginBottom: "12px", fontSize: "12px", color: sheetSyncStatus.ok ? "#4a9585" : "#9b4545" }}>
+              {sheetSyncStatus.result}
+            </p>
+          )}
 
           {/* ─ Advisor table ──────────────────────────────────────────── */}
           <div style={{ border: `1px solid ${S.border}`, borderRadius: "6px", overflow: "hidden", marginBottom: "16px" }}>
