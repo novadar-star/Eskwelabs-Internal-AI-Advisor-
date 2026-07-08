@@ -267,7 +267,7 @@ export async function POST(request: NextRequest) {
       }),
     });
   } catch (err) {
-    // Network-level failure reaching OpenRouter (DNS, timeout, etc.)
+  // Network-level failure reaching OpenRouter (DNS, timeout, etc.)
     // Log the real error server-side; return a safe errorType to the client.
     console.error("[api/chat] Failed to reach OpenRouter:", err);
     logEvent({ event: "provider_error", userId, metadata: { advisorId, model: MODEL, error: "network_failure" } });
