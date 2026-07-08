@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getSupabaseUserClient } from "@/lib/supabase";
-import { getAdvisor } from "@/lib/advisors";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(
   _request: NextRequest,
@@ -24,14 +23,15 @@ export async function GET(
   }
 
   try {
-    // ── 2. Initialize User-Scoped Client ─────────────────────────────────
-    const supabase = await getSupabaseUserClient(userId);
+    // ── 2. Initialize Admin Client (with explicit user_id filtering) ─────
+    const supabase = getSupabaseAdmin();
 
-    // ── 3. Fetch Conversation (natural RLS enforcement) ──────────────────
+    // ── 3. Fetch Conversation (explicit user_id check) ─────────────────
     const { data: conversation, error: convError } = await supabase
       .from("conversations")
       .select("id, title, advisor_id, user_id")
       .eq("id", conversationId)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (convError) {
@@ -73,8 +73,14 @@ export async function GET(
     }
 
     // ── 5. Format Plain Text File Content ────────────────────────────────
-    const advisor = getAdvisor(conversation.advisor_id);
-    const advisorName = advisor ? advisor.name : conversation.advisor_id;
+    // Look up advisor name from DB (supports dynamically-added advisors)
+    let advisorName = conversation.advisor_id;
+    const { data: advisorRow } = await supabase
+      .from("advisors")
+      .select("name")
+      .eq("id", conversation.advisor_id)
+      .single();
+    if (advisorRow?.name) advisorName = advisorRow.name;
 
     const formattedDate = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Manila",

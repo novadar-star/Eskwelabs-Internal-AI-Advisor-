@@ -50,10 +50,7 @@ export const LIMITS_FALLBACK = {
   rate_limit_per_minute:         10,
 } as const;
 
-// Keep LIMITS exported for any code that still references it (display, etc.)
-// This is the fallback — live values come from getLimits() at call time.
-export const LIMITS = LIMITS_FALLBACK;
-
+// Keep LIMITS_FALLBACK exported for display/reference purposes.
 export type LimitsConfig = typeof LIMITS_FALLBACK;
 
 /**

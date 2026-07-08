@@ -14,11 +14,6 @@ import type { docs_v1 } from "googleapis";
 
 let _authClient: Awaited<ReturnType<typeof buildAuthClient>> | null = null;
 
-// Call this to force a fresh auth client after credential changes
-export function resetAuthClient() {
-  _authClient = null;
-}
-
 async function buildAuthClient() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
