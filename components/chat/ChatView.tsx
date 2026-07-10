@@ -7,6 +7,7 @@ import MessageList from "@/components/chat/MessageList";
 import MessageInput from "@/components/chat/MessageInput";
 import AdvisorIcon from "@/components/AdvisorIcon";
 import ModelSelector from "./ModelSelector";
+import ShareButton from "./ShareButton";
 
 interface UsageStats {
   dailyLimit: number;
@@ -118,12 +119,12 @@ export default function ChatView({
           )}
         </div>
 
-        {/* Model selector & Export button */}
         <div className="ml-auto flex items-center gap-3">
           <ModelSelector
             advisorId={advisor.id}
             isAdmin={isAdmin}
           />
+          {conversationId && <ShareButton conversationId={conversationId} />}
           {conversationId && (
             <button
               onClick={handleExport}
