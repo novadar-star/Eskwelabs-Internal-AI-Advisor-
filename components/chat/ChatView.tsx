@@ -46,30 +46,6 @@ export default function ChatView({
   const iconColor = ADVISOR_BORDER_COLOR[advisor.id] ?? "var(--accent)";
 
   const [isExporting, setIsExporting] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
-  const [shareStatus, setShareStatus] = useState<string | null>(null);
-
-  const handleShare = async () => {
-    if (!conversationId || isSharing) return;
-    setIsSharing(true);
-    setShareStatus(null);
-    try {
-      const res = await fetch(`/api/conversations/${conversationId}/share`, { method: "POST" });
-      if (!res.ok) {
-        setShareStatus("Failed to generate share link.");
-        return;
-      }
-      const data = await res.json();
-      const shareUrl = `${window.location.origin}/shared/${data.shareToken}`;
-      await navigator.clipboard.writeText(shareUrl);
-      setShareStatus("Link copied!");
-      setTimeout(() => setShareStatus(null), 3000);
-    } catch {
-      setShareStatus("Failed to share.");
-    } finally {
-      setIsSharing(false);
-    }
-  };
 
   const handleExport = async () => {
     if (!conversationId || isExporting) return;
@@ -148,29 +124,6 @@ export default function ChatView({
             advisorId={advisor.id}
             isAdmin={isAdmin}
           />
-          {conversationId && (
-            <button
-              onClick={handleShare}
-              disabled={isSharing}
-              aria-label="Share conversation"
-              title={shareStatus || "Copy share link"}
-              className="flex h-7 w-7 items-center justify-center rounded transition-colors"
-              style={{ color: shareStatus === "Link copied!" ? "#10b981" : "var(--ink-muted)" }}
-              onMouseEnter={(e) => { if (!isSharing) { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--bg-hover)"; } }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; }}
-            >
-              {isSharing ? (
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
-                </svg>
-              )}
-            </button>
-          )}
           {conversationId && (
             <button
               onClick={handleExport}
