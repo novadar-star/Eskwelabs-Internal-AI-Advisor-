@@ -73,6 +73,7 @@ An internal AI advisory platform for Eskwelabs EIF (Eskwelabs Innovation Fellows
 | FR-17 | Advisor Favorites | `user_advisor_favorites` table — Users can favorite advisors in the chat UI |
 | FR-18 | Dynamic Theming | `color_theme` column — Custom accent colors per advisor |
 | FR-19 | Google Doc Verification | Admin UI validates Google Doc IDs before saving |
+| FR-20 | Share Conversations | `/share/[token]` route — securely generate read-only public links |
 
 ---
 
@@ -190,6 +191,7 @@ Or push to GitHub (auto-deploy if connected).
 | `model_config` | Active provider/model per advisor |
 | `limits_config` | Admin-editable caps (messages/day, budget, rate limit) |
 | `prompt_cache` | Shared cache for Google Docs content + DNA digest |
+| `conversation_shares` | Maps conversation IDs to UUIDv4 tokens for public read-only access |
 
 ### Key relationships
 
@@ -335,9 +337,10 @@ app/
       refresh-cache/       # POST/GET: cache management (admin)
   admin/                   # Admin dashboard page
   chat/                    # Chat page (server component + client shell)
+  share/[token]/           # Public read-only shared conversation view
   login/                   # Sign-in page
 components/
-  chat/                    # AdvisorPicker, ChatView, MessageInput, MessageList, Sidebar, ModelSelector
+  chat/                    # AdvisorPicker, ChatView, MessageInput, MessageList, ReadOnlyMessageList, ShareButton, Sidebar, ModelSelector
   ConsentModal.tsx         # First-run consent notice
   DarkModeToggle.tsx       # Theme switcher
   ThemeProvider.tsx         # next-themes wrapper
@@ -353,12 +356,15 @@ lib/
   telemetry.ts             # Structured event logging
   google-docs.ts           # Google Docs API client (service account)
   limits-meta.ts           # Metadata for admin limits UI
+  queries/
+    share-queries.ts       # Secure service_role queries for sharing
 supabase/
   schema.sql               # Base tables + RLS policies
   cost_guard.sql           # Rate limit + usage counter RPC
   limits_config.sql        # Limits config table + seeds
   add_consent.sql          # Add consent_given column
   prompt_cache.sql         # Shared prompt cache table
+  conversation_shares_table.sql # Share feature table and index
 ```
 
 ---
