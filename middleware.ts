@@ -93,9 +93,11 @@ export const config = {
      * - icon.svg       (app favicon)
      * - public files   (*.svg, *.png, *.ico, *.jpg, *.webp)
      * - api/auth/*     (NextAuth callback/session endpoints — must stay open)
+     * - shared/*       (public read-only conversation view — no auth needed)
+     * - api/shared/*   (public API for shared conversations — no auth needed)
      *
      * /login IS included in the matcher so we can redirect already-authed users.
      */
-    "/((?!_next/static|_next/image|favicon\\.ico|icon\\.svg|.*\\.(?:svg|png|ico|jpg|jpeg|webp)|api/auth).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|icon\\.svg|.*\\.(?:svg|png|ico|jpg|jpeg|webp)|api/auth|api/shared|shared).*)",
   ],
 };
