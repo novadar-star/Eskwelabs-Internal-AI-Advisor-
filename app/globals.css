@@ -105,3 +105,37 @@
   .text-secondary { color: var(--ink-muted); }
   .text-tertiary  { color: var(--ink-faint); }
 }
+
+/* ─── Accessibility: Reduced Motion ──────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Message entrance animation ─────────────────────────────────────── */
+@keyframes message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-message-enter {
+  animation: message-enter 200ms ease-out;
+}
+
+/* ─── Send button press feedback ─────────────────────────────────────── */
+button:active {
+  transform: scale(0.96);
+  transition: transform 100ms ease;
+}

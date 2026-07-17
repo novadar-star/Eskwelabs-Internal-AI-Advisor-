@@ -238,7 +238,12 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
       content: trimmedContent,
       createdAt: new Date(),
     };
-    const historySnapshot = messages.map((m) => ({ role: m.role, content: m.content }));
+    // Keep only the last 20 messages (10 turns) to control token costs.
+    // Older context is still visible in the UI but not sent to the LLM.
+    const MAX_HISTORY_MESSAGES = 20;
+    const historySnapshot = messages
+      .map((m) => ({ role: m.role, content: m.content }))
+      .slice(-MAX_HISTORY_MESSAGES);
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");

@@ -150,7 +150,7 @@ export default function ChatView({
         </div>
       </div>
 
-      <MessageList messages={messages} isSending={isSending} advisor={advisor} />
+      <MessageList messages={messages} isSending={isSending} advisor={advisor} onSuggestedPrompt={onSendMessage} />
 
       <MessageInput
         value={inputValue}

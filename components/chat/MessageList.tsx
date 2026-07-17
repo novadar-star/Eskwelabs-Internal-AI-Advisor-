@@ -6,13 +6,33 @@ import { ADVISOR_BORDER_COLOR } from "@/lib/advisors";
 import AdvisorIcon from "@/components/AdvisorIcon";
 import MarkdownRenderer from "./MarkdownRenderer";
 
+// Suggested prompts per advisor for the empty state
+const SUGGESTED_PROMPTS: Record<string, string[]> = {
+  data_dashboard: [
+    "What chart type should I use for trends over time?",
+    "How do I design a dashboard for non-technical audiences?",
+    "What are best practices for dashboard layout?",
+  ],
+  ssot_memo: [
+    "What's the structure of a good SSOT memo?",
+    "Help me identify the right stakeholder for my memo",
+    "How do I write a clear executive summary?",
+  ],
+  data_modeling: [
+    "What is a star schema and when should I use it?",
+    "How do I handle a many-to-many relationship?",
+    "Explain normalization with a simple example",
+  ],
+};
+
 interface MessageListProps {
   messages: Message[];
   isSending: boolean;
   advisor: Advisor;
+  onSuggestedPrompt?: (prompt: string) => void;
 }
 
-export default function MessageList({ messages, isSending, advisor }: MessageListProps) {
+export default function MessageList({ messages, isSending, advisor, onSuggestedPrompt }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,21 +47,51 @@ export default function MessageList({ messages, isSending, advisor }: MessageLis
       aria-label="Conversation messages"
       aria-live="polite"
     >
-      {/* Empty state */}
+      {/* Empty state with suggested prompts */}
       {messages.length === 0 && !isSending && (
-        <div className="flex h-full flex-col items-center justify-center gap-2">
+        <div className="flex h-full flex-col items-center justify-center gap-4">
           <span
             style={{ color: ADVISOR_BORDER_COLOR[advisor.id] ?? "var(--accent)", opacity: 0.5 }}
             aria-hidden="true"
           >
-            <AdvisorIcon icon={advisor.iconLabel} className="h-6 w-6" />
+            <AdvisorIcon icon={advisor.iconLabel} className="h-8 w-8" />
           </span>
-          <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>
-            {advisor.name}
-          </p>
-          <p className="text-[12px]" style={{ color: "var(--ink-muted)" }}>
-            Select a conversation or start a new one.
-          </p>
+          <div className="text-center">
+            <p className="text-[14px] font-semibold" style={{ color: "var(--ink)" }}>
+              {advisor.name}
+            </p>
+            <p className="mt-1 text-[12px]" style={{ color: "var(--ink-muted)" }}>
+              Start a conversation or try one of these:
+            </p>
+          </div>
+          {/* Suggested prompt chips */}
+          {onSuggestedPrompt && (
+            <div className="flex flex-col gap-2 mt-2 w-full max-w-md">
+              {(SUGGESTED_PROMPTS[advisor.id] ?? ["How can you help me?"]).map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => onSuggestedPrompt(prompt)}
+                  className="text-left rounded-lg px-4 py-3 text-[13px] transition-all duration-150 hover:translate-x-1"
+                  style={{
+                    backgroundColor: "var(--bg-raised)",
+                    border: "1px solid var(--border)",
+                    color: "var(--ink-muted)",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent)";
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--ink)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-muted)";
+                  }}
+                >
+                  <span style={{ color: "var(--accent)", marginRight: "8px" }}>→</span>
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -68,6 +118,7 @@ export default function MessageList({ messages, isSending, advisor }: MessageLis
 function MessageBubble({ message, isStreaming }: { message: Message; isStreaming: boolean }) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
 
   const handleCopy = async () => {
     try {
@@ -80,9 +131,28 @@ function MessageBubble({ message, isStreaming }: { message: Message; isStreaming
     }
   };
 
+  const handleFeedback = async (rating: "up" | "down") => {
+    // Toggle off if same rating clicked again
+    const newRating = feedback === rating ? null : rating;
+    setFeedback(newRating);
+
+    if (newRating && message.id && !message.id.startsWith("msg-")) {
+      // Only send to API if it's a real DB message (not optimistic ID)
+      try {
+        await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messageId: message.id, rating: newRating }),
+        });
+      } catch {
+        // Non-blocking — feedback is best-effort
+      }
+    }
+  };
+
   return (
     <div
-      className={`flex items-end gap-2 group ${isUser ? "flex-row-reverse" : "flex-row"}`}
+      className={`flex items-end gap-2 group animate-message-enter ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
       {/* Avatar */}
       <div
@@ -130,7 +200,7 @@ function MessageBubble({ message, isStreaming }: { message: Message; isStreaming
             <span className="font-mono opacity-65 text-[10px]">({message.model})</span>
           )}
           {!isUser && message.content && (
-            <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
+            <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150 flex items-center gap-2">
               <button
                 onClick={handleCopy}
                 className="flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors font-medium cursor-pointer"
@@ -151,6 +221,27 @@ function MessageBubble({ message, isStreaming }: { message: Message; isStreaming
                     <span>Copy</span>
                   </>
                 )}
+              </button>
+              {/* Feedback buttons */}
+              <button
+                onClick={() => handleFeedback("up")}
+                className={`p-0.5 rounded transition-colors cursor-pointer ${feedback === "up" ? "text-emerald-500" : "hover:text-emerald-500"}`}
+                aria-label="Helpful"
+                title="Helpful"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                  <path d="M1 8.25a1.25 1.25 0 1 1 2.5 0v7.5a1.25 1.25 0 1 1-2.5 0v-7.5ZM11 3V1.7c0-.268.14-.526.395-.607A2 2 0 0 1 14 3c0 .995-.182 1.948-.514 2.826-.204.54.166 1.174.744 1.174h2.52c1.243 0 2.261 1.01 2.146 2.247a23.864 23.864 0 0 1-1.341 5.974 1.749 1.749 0 0 1-1.6 1.029H12.5a.75.75 0 0 1-.53-.22l-2.72-2.72H5.25c-.69 0-1.25-.56-1.25-1.25v-6c0-.69.56-1.25 1.25-1.25h3.057a1 1 0 0 0 .768-.36L11 3Z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => handleFeedback("down")}
+                className={`p-0.5 rounded transition-colors cursor-pointer ${feedback === "down" ? "text-red-500" : "hover:text-red-500"}`}
+                aria-label="Not helpful"
+                title="Not helpful"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                  <path d="M19 11.75a1.25 1.25 0 1 1-2.5 0v-7.5a1.25 1.25 0 1 1 2.5 0v7.5ZM9 17v1.3c0 .268-.14.526-.395.607A2 2 0 0 1 6 17c0-.995.182-1.948.514-2.826.204-.54-.166-1.174-.744-1.174H3.25c-1.243 0-2.261-1.01-2.146-2.247a23.864 23.864 0 0 1 1.341-5.974A1.749 1.749 0 0 1 4.044 3.75H7.5a.75.75 0 0 1 .53.22l2.72 2.72H14.75c.69 0 1.25.56 1.25 1.25v6c0 .69-.56 1.25-1.25 1.25h-3.057a1 1 0 0 0-.768.36L9 17Z" />
+                </svg>
               </button>
             </div>
           )}
