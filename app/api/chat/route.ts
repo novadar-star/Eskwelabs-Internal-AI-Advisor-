@@ -250,11 +250,15 @@ export async function POST(request: NextRequest) {
   // The system prompt is the first message — assembled server-side,
   // never returned to the browser in any form.
 
+  // Server-side truncation: only keep the last 20 messages regardless of what the client sends.
+  // This is defense-in-depth — the client already truncates, but a modified client could bypass it.
+  const truncatedHistory = conversationHistory.slice(-20);
+
   const llmMessages = [
     { role: "system" as const, content: systemPrompt },
-    ...conversationHistory.map((m) => ({
+    ...truncatedHistory.map((m) => ({
       role: m.role as "user" | "assistant",
-      content: String(m.content),
+      content: String(m.content).slice(0, 10000), // Also cap individual message content
     })),
     { role: "user" as const, content: message.trim() },
   ];
