@@ -42,13 +42,38 @@ export async function PATCH(
 
   // Build update object with only provided fields
   const updates: Record<string, unknown> = {};
-  if (body.name !== undefined) updates.name = body.name;
-  if (body.shortName !== undefined) updates.short_name = body.shortName;
-  if (body.description !== undefined) updates.description = body.description;
-  if (body.icon !== undefined) updates.icon = body.icon;
+  if (body.name !== undefined) {
+    if (typeof body.name !== "string" || body.name.length > 100) {
+      return NextResponse.json({ error: "name must be a string under 100 characters." }, { status: 400 });
+    }
+    updates.name = body.name;
+  }
+  if (body.shortName !== undefined) {
+    if (typeof body.shortName !== "string" || body.shortName.length > 50) {
+      return NextResponse.json({ error: "shortName must be a string under 50 characters." }, { status: 400 });
+    }
+    updates.short_name = body.shortName;
+  }
+  if (body.description !== undefined) {
+    if (typeof body.description !== "string" || body.description.length > 500) {
+      return NextResponse.json({ error: "description must be under 500 characters." }, { status: 400 });
+    }
+    updates.description = body.description;
+  }
+  if (body.icon !== undefined) {
+    if (typeof body.icon !== "string" || body.icon.length > 30) {
+      return NextResponse.json({ error: "icon must be a string under 30 characters." }, { status: 400 });
+    }
+    updates.icon = body.icon;
+  }
   if (body.promptDocId !== undefined) updates.prompt_doc_id = body.promptDocId;
   if (body.isActive !== undefined) updates.is_active = body.isActive;
-  if (body.purpose !== undefined) updates.purpose = body.purpose;
+  if (body.purpose !== undefined) {
+    if (typeof body.purpose !== "string" || body.purpose.length > 500) {
+      return NextResponse.json({ error: "purpose must be under 500 characters." }, { status: 400 });
+    }
+    updates.purpose = body.purpose;
+  }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No fields to update." }, { status: 400 });

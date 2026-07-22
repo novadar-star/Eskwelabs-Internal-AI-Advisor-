@@ -505,9 +505,6 @@ export async function POST(request: NextRequest) {
     status: 200,
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "X-Advisor-Id": advisorId,
-      "X-Prompt-Revision": promptDocRevision,
-      "X-Dna-Digest-Version": dnaDigestVersion,
       "Cache-Control": "no-cache, no-transform",
       "X-Accel-Buffering": "no",
     },

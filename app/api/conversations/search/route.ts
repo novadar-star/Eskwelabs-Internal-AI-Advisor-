@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([]);
   }
 
+  // Security: escape ILIKE wildcards to prevent pattern injection
+  const safeQuery = query.replace(/%/g, "\\%").replace(/_/g, "\\_");
+
   try {
     // ── 2. Initialize Admin Client (with explicit user_id filtering) ─────
     const supabase = getSupabaseAdmin();
@@ -27,7 +30,7 @@ export async function GET(request: NextRequest) {
       .from("conversations")
       .select("id, title, advisor_id, created_at, updated_at")
       .eq("user_id", userId)
-      .ilike("title", `%${query}%`)
+      .ilike("title", `%${safeQuery}%`)
       .order("updated_at", { ascending: false })
       .limit(20);
 
@@ -61,7 +64,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq("user_id", userId)
-      .ilike("content", `%${query}%`)
+      .ilike("content", `%${safeQuery}%`)
       .order("created_at", { ascending: false })
       .limit(20);
 

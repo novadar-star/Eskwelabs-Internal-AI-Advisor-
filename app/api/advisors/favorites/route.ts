@@ -32,8 +32,8 @@ export async function POST(req: Request) {
 
   try {
     const { advisor_id } = await req.json();
-    if (!advisor_id) {
-      return NextResponse.json({ error: "Missing advisor_id" }, { status: 400 });
+    if (!advisor_id || typeof advisor_id !== "string") {
+      return NextResponse.json({ error: "Missing or invalid advisor_id" }, { status: 400 });
     }
 
     const supabase = await getSupabaseUserClient(session.user.id);
