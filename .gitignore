@@ -33,3 +33,5 @@ yarn-error.log*
 # IDE / Editor
 .vscode/
 .kiro/
+.agents/
+.claude/

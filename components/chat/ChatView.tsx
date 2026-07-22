@@ -24,6 +24,7 @@ interface ChatViewProps {
   isSending: boolean;
   onInputChange: (value: string) => void;
   onSendMessage: (content: string) => void;
+  onStopGeneration: () => void;
   onBack: () => void;
   conversationId: string | null;
   isLimitReached: boolean;
@@ -38,6 +39,7 @@ export default function ChatView({
   isSending,
   onInputChange,
   onSendMessage,
+  onStopGeneration,
   onBack,
   conversationId,
   isLimitReached,
@@ -151,6 +153,28 @@ export default function ChatView({
       </div>
 
       <MessageList messages={messages} isSending={isSending} advisor={advisor} onSuggestedPrompt={onSendMessage} />
+
+      {/* Stop generation button — visible only during streaming */}
+      {isSending && messages.length > 0 && messages[messages.length - 1]?.role === "assistant" && (
+        <div className="flex justify-center py-2" style={{ borderTop: "1px solid var(--border)" }}>
+          <button
+            onClick={onStopGeneration}
+            className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
+            style={{
+              backgroundColor: "var(--bg-raised)",
+              border: "1px solid var(--border)",
+              color: "var(--ink-muted)",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ink)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-muted)"; }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
+              <rect x="3" y="3" width="10" height="10" rx="1" />
+            </svg>
+            Stop generating
+          </button>
+        </div>
+      )}
 
       <MessageInput
         value={inputValue}

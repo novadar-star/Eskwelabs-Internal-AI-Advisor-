@@ -41,7 +41,7 @@
  *     cost-guard block messages, which are already user-safe)
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import { ADVISORS } from "@/lib/advisors";
 import type { AdvisorId, Conversation, Message } from "@/lib/chat-types";
@@ -139,6 +139,17 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
   const [inputValue, setInputValue]                   = useState("");
   const [isSending, setIsSending]                     = useState(false);
   const [isLoadingMessages, setIsLoadingMessages]     = useState(false);
+
+  // Abort controller for stopping generation mid-stream
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleStopGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsSending(false);
+    }
+  }, []);
 
   // Dynamic advisors — fetched from DB, falls back to hardcoded ADVISORS
   const [advisors, setAdvisors] = useState(ADVISORS);
@@ -263,6 +274,10 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
     };
 
     try {
+      // Create abort controller for this request
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -272,6 +287,7 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
           advisorId: selectedAdvisorId,
           conversationId: activeConversationId,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -534,6 +550,7 @@ export default function ChatShell({ userRole, consentGiven: initialConsentGiven 
                 isSending={isSending || isLoadingMessages}
                 onInputChange={setInputValue}
                 onSendMessage={handleSendMessage}
+                onStopGeneration={handleStopGeneration}
                 onBack={handleBackToPicker}
                 conversationId={activeConversationId}
                 isLimitReached={usage !== null && usage.remaining <= 0}

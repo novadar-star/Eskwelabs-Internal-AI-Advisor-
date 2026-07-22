@@ -547,11 +547,37 @@ export default function AdminDashboard({
         </div>
       </header>
 
+      {/* ── Sticky Tab Navigation ──────────────────────────────────── */}
+      <nav
+        className="sticky top-[44px] z-20 flex items-center gap-1 px-6 py-2 overflow-x-auto"
+        style={{ backgroundColor: S.base, borderBottom: `1px solid ${S.border}` }}
+        aria-label="Admin sections"
+      >
+        {[
+          { id: "usage", label: "Usage" },
+          { id: "limits", label: "Limits" },
+          { id: "models", label: "Models" },
+          { id: "advisors", label: "Advisors" },
+          { id: "cache", label: "Cache" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => document.getElementById(`section-${tab.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors"
+            style={{ color: S.muted }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = S.hover; (e.currentTarget as HTMLButtonElement).style.color = S.ink; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = S.muted; }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
       {/* ── Main ─────────────────────────────────────────────────────── */}
       <main className="mx-auto max-w-5xl space-y-10 px-6 py-10">
 
         {/* ═══ 1. Usage Overview (FR-09) ════════════════════════════════ */}
-        <section>
+        <section id="section-usage">
           <SectionLabel label="Usage" meta={`${usageDate} · Asia/Manila`} />
 
           {/* Monthly spend summary bar */}
@@ -654,7 +680,7 @@ export default function AdminDashboard({
         </section>
 
         {/* ═══ 2. Limits Configuration (FR-06 / FR-07) ════════════════ */}
-        <section>
+        <section id="section-limits">
           <SectionLabel label="Cost & Rate Limits" />
           <p style={{ fontSize: "12px", color: S.muted, marginBottom: "12px", lineHeight: 1.6 }}>
             Changes take effect on the <strong style={{ color: S.ink }}>next</strong> request — no redeploy needed.
@@ -766,7 +792,7 @@ export default function AdminDashboard({
         </section>
 
         {/* ═══ 3. Model Configuration (FR-08) ══════════════════════════ */}
-        <section>
+        <section id="section-models">
           <SectionLabel label="Model Configuration" />
 
           <div style={{ border: `1px solid ${S.border}`, borderRadius: "6px", overflow: "hidden" }}>
@@ -852,7 +878,7 @@ export default function AdminDashboard({
         </section>
 
         {/* ═══ 4. Advisor Registry ════════════════════════════════════ */}
-        <section>
+        <section id="section-advisors">
           <div className="flex items-center justify-between mb-4">
             <SectionLabel label="Advisor Registry" />
             <div className="flex items-center gap-2">
@@ -1460,7 +1486,7 @@ export default function AdminDashboard({
         </section>
 
         {/* ═══ 5. Prompt Cache (FR-13) ════════════════════════════════ */}
-        <section>
+        <section id="section-cache">
           <SectionLabel label="Prompt Cache" />
 
           <div style={{

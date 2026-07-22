@@ -145,9 +145,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Security: cap message length to prevent abuse
+  if (message.length > 10000) {
+    return NextResponse.json(
+      { error: "Message is too long. Please keep it under 10,000 characters." },
+      { status: 400 }
+    );
+  }
+
   if (!Array.isArray(conversationHistory)) {
     return NextResponse.json(
       { error: "conversationHistory must be an array." },
+      { status: 400 }
+    );
+  }
+
+  // Security: cap history length to prevent memory/token abuse
+  if (conversationHistory.length > 40) {
+    return NextResponse.json(
+      { error: "conversationHistory is too long." },
       { status: 400 }
     );
   }

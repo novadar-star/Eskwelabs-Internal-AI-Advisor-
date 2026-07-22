@@ -96,6 +96,17 @@ export default function MessageList({ messages, isSending, advisor, onSuggestedP
       )}
 
       <div className="space-y-4">
+        {/* Skeleton loading state — shown when loading conversation history */}
+        {messages.length === 0 && isSending && (
+          <>
+            <SkeletonBubble align="left" width="70%" />
+            <SkeletonBubble align="right" width="45%" />
+            <SkeletonBubble align="left" width="60%" />
+            <SkeletonBubble align="right" width="35%" />
+            <SkeletonBubble align="left" width="75%" />
+          </>
+        )}
+
         {messages.map((message, index) => (
           <MessageBubble
             key={message.id}
@@ -306,5 +317,31 @@ function toPlainText(markdown: string): string {
   text = text.replace(/^[\*\-]\s+/gm, "");
   text = text.replace(/^\d+\.\s+/gm, "");
   return text;
+}
+
+// ── SkeletonBubble — loading placeholder ───────────────────────────────────
+
+function SkeletonBubble({ align, width }: { align: "left" | "right"; width: string }) {
+  return (
+    <div className={`flex items-end gap-2 ${align === "right" ? "flex-row-reverse" : "flex-row"}`}>
+      <div
+        className="h-6 w-6 flex-shrink-0 rounded animate-pulse"
+        style={{ backgroundColor: "var(--bg-hover)" }}
+      />
+      <div
+        className="rounded-md px-3.5 py-4 animate-pulse"
+        style={{
+          width,
+          backgroundColor: align === "right" ? "var(--bg-hover)" : "var(--bubble-ai-bg)",
+          border: align === "left" ? "1px solid var(--bubble-ai-border)" : "none",
+        }}
+      >
+        <div className="space-y-2">
+          <div className="h-3 rounded" style={{ backgroundColor: "var(--border)", width: "80%" }} />
+          <div className="h-3 rounded" style={{ backgroundColor: "var(--border)", width: "60%" }} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
